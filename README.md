@@ -11,3 +11,4 @@ Python Engine for Magic: the Gathering
 
 [Scryfall](https://scryfall.com/sets/neo)
 [Hyperlinked MtG Rules](https://yawgatog.com/resources/magic-rules/)
+[The Collation Project](https://www.lethe.xyz/mtg/collation/index.html)
