@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # Using Scryfall bulk data, more info here:
 # https://scryfall.com/docs/api/bulk-data
-
 # %%
-import requests
-import os
+
 import glob
 import json
+import os
 from types import MappingProxyType, NoneType
+
+import requests
 
 DATA_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '../../data'))
@@ -15,7 +16,6 @@ DATA_DIR = os.path.abspath(os.path.join(
 bulk_metadata = MappingProxyType({})
 bulk_data = MappingProxyType({})
 
-# %%
 
 def proxy(data):
     ''' Get a read-only proxy for a mapping '''
@@ -38,7 +38,7 @@ def proxy_json_file(filename: str) -> MappingProxyType:
         return proxy(json.load(f))
 
 
-def get_bulk_metadata(overwrite: bool=False) -> MappingProxyType:
+def get_bulk_metadata(overwrite: bool = False) -> MappingProxyType:
     ''' Get the metadata for bulk data downloads from Scryfall '''
     global bulk_metadata
     if len(bulk_metadata) > 0 and not overwrite:
@@ -51,7 +51,7 @@ def get_bulk_metadata(overwrite: bool=False) -> MappingProxyType:
     return bulk_metadata
 
 
-def get_bulk_data(bulk_type: str, overwrite: bool=False) -> MappingProxyType:
+def get_bulk_data(bulk_type: str, overwrite: bool = False) -> MappingProxyType:
     ''' Get Bulk Data from Scryfall'''
     global bulk_data
     # Check if we already have it loaded
@@ -64,7 +64,7 @@ def get_bulk_data(bulk_type: str, overwrite: bool=False) -> MappingProxyType:
     return bulk_data[bulk_type]
 
 
-def load_bulk_data(bulk_type: str, overwrite: bool=False) -> MappingProxyType:    
+def load_bulk_data(bulk_type: str, overwrite: bool = False) -> MappingProxyType:
     ''' Load a bulk data file from Scryfall, return a read-only proxy to the data '''
     # Check if we have a file downloaded
     filename = bulk_type.lower().replace(' ', '-')
@@ -102,7 +102,7 @@ def download_bulk_data(bulk_type: str) -> str:
     return bulk_path
 
 
-def get_all_bulk_data(overwrite: bool=False) -> MappingProxyType:
+def get_all_bulk_data(overwrite: bool = False) -> MappingProxyType:
     ''' Get all bulk data from Scryfall '''
     global bulk_data
     # Check if we already have it loaded
@@ -111,10 +111,26 @@ def get_all_bulk_data(overwrite: bool=False) -> MappingProxyType:
         if name not in bulk_data or overwrite:
             get_bulk_data(name, overwrite)
         assert name in bulk_data, f'{name} not in bulk_data; {bulk_data.keys()}'
-    assert len(bulk_data) == len(metadata), f'Expected {len(metadata)} data, got {len(bulk_data)}'
+    assert len(bulk_data) == len(
+        metadata), f'Expected {len(metadata)} data, got {len(bulk_data)}'
     return bulk_data
 
 
+def get_draft_cards(set_name: str = "neo") -> MappingProxyType:
+    ''' Get all cards in a set '''
+    set_name = set_name.lower()
+    default_cards = get_bulk_data('Default Cards')
+    # Filter to cards in this set
+    cards = filter(lambda c: c['set'] == set_name, default_cards)
+    # Filter to just cards in draft boosters
+    cards = filter(lambda c: c['booster'], cards)
+    # Sort by 'collector_number'
+    cards = sorted(cards, key=lambda c: int(c['collector_number']))
+    assert len(cards), f'No cards found for {set_name}'
+    return cards
+
+
+# %%
 
 if __name__ == '__main__':
     get_all_bulk_data()
