@@ -5,7 +5,7 @@ import logging
 import os
 from types import MappingProxyType, NoneType
 from urllib.parse import urlparse
-
+ 
 import requests
 
 from mtg_cards.card import Card, Cards
@@ -15,6 +15,7 @@ DATA_DIR = os.path.abspath(os.path.join(
 
 bulk_metadata = MappingProxyType({})
 bulk_data = MappingProxyType({})
+draft_cards = MappingProxyType({})
 
 
 def proxy(data):
@@ -26,6 +27,18 @@ def proxy(data):
     elif isinstance(data, list):
         return tuple([proxy(item) for item in data])
     elif isinstance(data, (str, int, float, tuple, NoneType)):
+        return data
+    else:
+        raise TypeError(f'Unsupported type: {type(data)}')
+
+
+def unproxy(data):
+    ''' Invert the proxy(), used to save data to JSON files '''
+    if isinstance(data, MappingProxyType):
+        return {k: unproxy(v) for k, v in data.items()}
+    elif isinstance(data, (tuple, list)):
+        return [unproxy(item) for item in data]
+    elif isinstance(data, (str, int, float, NoneType)):
         return data
     else:
         raise TypeError(f'Unsupported type: {type(data)}')
@@ -108,20 +121,40 @@ def download_cache_file(uri: str) -> str:
     return local_path
 
 
-def get_draft_cards(set_name: str = "neo") -> MappingProxyType:
-    ''' Get all cards in a set '''
+def get_draft_cards(set_name: str = "neo", cache=True) -> MappingProxyType:
+    ''' Get all cards in a set, usually load from cached JSON file '''
+    global draft_cards
     set_name = set_name.lower()
-    default_cards = get_bulk_data_type('Default Cards')
-    # Filter to cards in this set
-    cards = filter(lambda c: c['set'] == set_name, default_cards)
-    # Filter to just cards in draft boosters
-    cards = filter(lambda c: c['booster'], cards)
-    # Sort by 'collector_number'
-    cards = sorted(cards, key=lambda c: int(c['collector_number']))
-    # Convert to card objects
-    cards = [Card.from_scryfall(c) for c in cards]
-    assert len(cards), f'No cards found for {set_name}'
-    return Cards(cards)
+    if set_name not in draft_cards:
+        cache_file = os.path.join(DATA_DIR, 'draft_cache', f'{set_name}.jsonl')
+        if cache and os.path.exists(cache_file):
+            with open(cache_file, 'r') as f:
+                cards = [json.loads(line) for line in f]
+                cards = proxy(cards)
+        else:
+            default_cards = get_bulk_data_type('Default Cards')
+            # Filter to cards in this set
+            cards = filter(lambda c: c['set'] == set_name, default_cards)
+            # Filter to just cards in draft boosters
+            cards = filter(lambda c: c['booster'], cards)
+            # Sort by 'collector_number'
+            cards = sorted(cards, key=lambda c: int(c['collector_number']))
+            # Save cache file
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, 'w') as f:
+                for card in cards:
+                    f.write(json.dumps(unproxy(card)) + '\n')
+        # Convert cards to card type, and cards to a tuple (immutable)
+        cards = tuple(Card.from_scryfall(card) for card in cards)
+        draft_cards = MappingProxyType(draft_cards | {set_name: cards})
+    # Ensure we got the set
+    assert set_name in draft_cards, f'No cards found for {set_name}'
+    # Ensure there are cards in the set
+    assert len(draft_cards[set_name]), f'No cards found for {set_name}'
+    # Ensure this is an immutable type
+    assert isinstance(draft_cards[set_name], tuple), f'{type(draft_cards[set_name])}'
+    # Return a mutable container
+    return Cards(list(draft_cards[set_name]))
 
 
 def get_card_image(card: MappingProxyType, fmt: str = 'png') -> str:
