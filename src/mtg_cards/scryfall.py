@@ -1,16 +1,14 @@
 #!/usr/bin/env python
-# Using Scryfall bulk data, more info here:
-# https://scryfall.com/docs/api/bulk-data
 # %%
-
-import glob
 import json
+import logging
 import os
 from types import MappingProxyType, NoneType
 from urllib.parse import urlparse
-import logging
 
 import requests
+
+from mtg_cards.card import Card, Cards
 
 DATA_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '../../data'))
@@ -42,6 +40,7 @@ def proxy_json_file(filename: str) -> MappingProxyType:
 
 def get_bulk_metadata() -> MappingProxyType:
     ''' Get the metadata for bulk data downloads from Scryfall '''
+    # More info: https://scryfall.com/docs/api/bulk-data
     global bulk_metadata
     if not len(bulk_metadata):
         bulk_metdata_path = os.path.join(DATA_DIR, 'bulk_metadata.json')
@@ -119,8 +118,10 @@ def get_draft_cards(set_name: str = "neo") -> MappingProxyType:
     cards = filter(lambda c: c['booster'], cards)
     # Sort by 'collector_number'
     cards = sorted(cards, key=lambda c: int(c['collector_number']))
+    # Convert to card objects
+    cards = [Card.from_scryfall(c) for c in cards]
     assert len(cards), f'No cards found for {set_name}'
-    return cards
+    return Cards(cards)
 
 
 def get_card_image(card: MappingProxyType, fmt: str = 'png') -> str:
@@ -135,4 +136,4 @@ def get_card_image(card: MappingProxyType, fmt: str = 'png') -> str:
 
 
 if __name__ == '__main__':
-    get_draft_cards()  # Download data for draft cards
+    print(get_draft_cards())  # Download data for draft cards
