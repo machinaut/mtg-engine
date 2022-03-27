@@ -122,7 +122,7 @@ def get_booster(set_name: str = "neo", rng: Optional[random.Random] = None) -> l
         probs, cards = zip(*sp)
         choice, = rng.choices(cards, probs, k=1)
         pack.append(choice)
-    return pack
+    return Cards(pack)
 
 
 if __name__ == '__main__':
