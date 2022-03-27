@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-# Sample random booster packs
-
-# %%
+# %% # Sample random booster packs
 import random
 from types import MappingProxyType
 from typing import Optional
@@ -138,14 +136,6 @@ def get_booster(set_name: str = "neo", rng: Optional[random.Random] = None) -> l
     return pack
 
 
-# for card in get_booster():
-#     print(card['name'])
-
-# # %%
-
-# neo_probs = get_booster_probs('neo')
-
-# # %%
-# cards = get_draft_cards('neo')
-# common_lands = list(filter(lambda c: is_land(c) and c['rarity'] == 'common', cards))
-# [c['name'] for c in common_lands]
+if __name__ == '__main__':
+    for card in get_booster():
+        print(card['name'], f'({card["rarity"]})')
