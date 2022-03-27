@@ -1,77 +1,130 @@
 #!/usr/bin/env python
 # %% # Simulate a draft
+import logging
 import random
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
+from urllib.parse import non_hierarchical
 
-from mtg_cards.booster import get_booster
+from mtg_cards.booster import get_booster, Booster
+from mtg_cards.card import Card, Cards
+
 
 @dataclass
-class DraftHistory:
-    ''' The draft history for a single player, with picks and packs seen '''
-    players: int  # number of players
-    picks: list  # picks made by this player
-    packs: list  # packs seen by this player
+class DraftPlayer:
+    ''' Store the state of a single player during the draft '''
+    player: int
+    players: int
+    pack: Optional[Booster] = None
+    seen: List[Booster] = field(default_factory=list)
+    picks: List[int] = field(default_factory=list)
+    cards: List[Card] = field(default_factory=list)
+
+    def pick(self, pick: int) -> Card:
+        ''' Pick a card to remove from the pack '''
+        assert 0 <= pick < len(self.pack), f'{pick}'
+        pack = self.pack
+        seen = pack.copy()
+        card = pack.pick(pick)
+        self.picks.append(pick)  # Add the pick to the list of picks
+        self.seen.append(seen)  # Add the pack to the list of seen packs
+        self.cards.append(card)  # Add the card to the list of cards
+        # The draft will take the pack from us when everyone passes
 
 
 @dataclass
 class Draft:
     ''' Simulate a draft '''
-    players: int = 8
+    N: int = 8
     set_name: str = 'neo'
     rng: Optional[random.Random] = None
+    current_pack: int = 0
+    current_pick: int = 0
+    turn: int = 0
+
+    def get_booster(self):
+        ''' Generate a booster pack using our internal RNG '''
+        return get_booster(set_name=self.set_name, rng=self.rng)
+
+    def get_player(self, i):
+        ''' Create a new DraftPlayer and give them one of the booster packs '''
+        return DraftPlayer(player=i, players=self.N, pack=self.get_booster())
 
     def __post_init__(self):
-        assert 1 < self.players < 9, f'{self.players}'
+        assert 1 < self.N < 9, f'{self.N}'
         assert self.set_name == 'neo', f'{self.set_name}; only NEO for now'
         if self.rng is None:
             self.rng = random.Random()
-        # Get the packs, each player gets 3, saved as immutable
-        # Note that the second and future packs might not be with the same player
-        # Since we always index packs with (turn % player)
-        booster = lambda: tuple(get_booster(set_name=self.set_name, rng=self.rng))
-        self.starting_packs = tuple(tuple(booster() for _ in range(3)) for _ in range(self.players))
-        # Current packs, will get updated as players draft
-        # This is indexed by the starting position, not current player
-        self.current_packs = [list(p[0]) for p in self.starting_packs]
-        # This is which pick number we are currently on, which resets with new packs
-        self.current_pick = 0
-        # Turn increments by one with every pick
-        self.turn = 0
-        # History of packs seen by each player (immutable)
-        self.seen = [[tuple(p)] for p in self.current_packs]
-        # This is the current state of the packs, and will get updated
-        self.packs = [[booster() for _ in range(3)] for _ in range(self.players)]
-        # Store the pick index for each player for each turn
-        self.picks = [[] for _ in range(self.players)]
+        # Player objects, used to track each player's state
+        self.players = [self.get_player(i) for i in range(self.N)]
+        # Get the packs, each player starts with 1, so we need 2 more
+        self.boosters = [self.get_booster() for _ in range(2 * self.N)]
+        # Will hold packs returned by players post-pick
+        self.returned_packs = {}  # indexed by player index
+        # Start the draft
+        self.turn = 1
+        self.current_pack = 1
+        self.current_pick = 1
 
     @property
-    def pack(self) -> int:
-        ''' Which pack are we on '''
-        pack = self.turn // 15
-        assert 0 <= pack < 45, f'{pack}'
-        return pack
+    def done(self) -> bool:
+        ''' Check if the draft is done '''
+        return self.turn >= 45
 
-    def get_hist(self, player: int) -> list:
-        ''' Get all the observations, which are tuples of (traj, picks, pack) '''
-        assert isinstance(player, int) and (0 <= player < self.players), f'{player}'
-        self.validate()
-        picks = self.picks[player]
-        packs = self.seen[player]
-        assert len(packs) == len(picks) + 1, f'{len(packs)}, {len(picks)}'
-        return DraftHistory(players=self.players, picks=picks, packs=packs)
+    def ready_to_pass(self) -> bool:
+        ''' Check if we're ready to pass the packs '''
+        return all(len(p.picks) == self.turn for p in self.players)
 
-    def pick(self, player:int, choice: int):
-        ''' Make a pick for a player '''
-        assert isinstance(player, int) and (0 <= player < self.players), f'{player}'
-        current_pack = self.current_packs[self.turn % player]
-        assert isinstance(choice, int) and (0 <= choice < len(self.packs[player])), f'{choice}'
-
-        self.picks[player].append(choice)
-        self.seen[player].append(self.packs[player][choice])
-        self.packs[player].pop(choice)
+    def pass_packs(self):
+        ''' Call this when all players have made a pick '''
+        # assert we're not at the end of the draft
+        assert 1 <= self.turn <= 45, f'{self.turn}'
+        # increment the turn
         self.turn += 1
+        if self.turn >= 45:
+            return  # done with draft
+        # increment the pick number, possibly opening a new pack
+        self.current_pick += 1
+        if self.current_pick > 15:
+            logging.debug("Opening new pack")
+            # Assert all the current packs are empty
+            assert all(len(p.pack) == 0 for p in self.players), f'{self}'
+            self.current_pack += 1
+            self.current_pick = 1
+            # Get new packs from boosters
+            for player in self.players:
+                player.pack = self.boosters.pop(0)
+        else:
+            # Pass to left, right, left
+            pass_dir = [-1, +1][self.current_pack % 2]
+            logging.debug(f"Passing to {pass_dir}")
+            # Shift all of the packs
+            packs = [p.pack for p in self.players]
+            packs = packs[pass_dir:] + packs[:pass_dir]
+            for player, pack in zip(self.players, packs):
+                player.pack = pack
 
-rng = random.Random(0)
-draft = Draft(rng=rng)
-draft.picks[0]
+    def pick(self, i: int, choice: int, auto_pass: bool = True):
+        ''' Make a pick for a player '''
+        # Validate inputs
+        assert isinstance(i, int) and (0 <= i < self.N), f'{i}'
+        player = self.players[i]
+        player.pick(choice)
+
+        # If this is the last pick, pass the packs
+        if auto_pass and self.ready_to_pass():
+            self.pass_packs()
+
+
+if __name__ == '__main__':
+    # set logging level to debug
+    logging.basicConfig(level=logging.DEBUG)
+    rng = random.Random(0)
+    N = 8
+    draft = Draft(N=N, rng=rng)
+    for i in range(45):
+        for p in range(N):
+            print(f'pick {i} player {p}')
+            draft.pick(p, 0)
+
+    print(len(draft.players[0].cards))

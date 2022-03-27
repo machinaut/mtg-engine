@@ -4,14 +4,42 @@ import logging
 import random
 from types import MappingProxyType
 from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
-from mtg_cards.card import Cards
+from mtg_cards.card import Cards, Card
 from mtg_cards.scryfall import get_draft_cards, proxy
 
 # Use this to cache computing the booster probabilities
 booster_probs = MappingProxyType({})
+
+
+@dataclass
+class Booster(Cards):
+    ''' A Draft Booster Pack of cards'''
+
+    @classmethod
+    def generate(cls, set_name: str='neo', rng: Optional[random.Random] = None) -> 'Booster':
+        ''' Generate a random booster pack '''
+        if rng is None:
+            rng = random
+        cards = get_booster_cards(set_name=set_name, rng=rng)
+        return cls(cards.cards)  # unwrap inner list
+
+    def pick(self, choice: int) -> Card:
+        ''' Pick a card to remove from the pack '''
+        assert 0 <= choice < len(self.cards), f'{choice}'
+        return self.cards.pop(choice)
+
+    def copy(self) -> 'Booster':
+        ''' Get a copy of the booster pack '''
+        return Booster(self.cards.copy())
+
+
+def get_booster(set_name: str='neo', rng: Optional[random.Random] = None) -> Booster:
+    ''' Get a booster pack '''
+    return Booster.generate(set_name=set_name, rng=rng)
 
 
 def get_booster_probs(set_name: str = "neo") -> tuple:
@@ -111,7 +139,7 @@ def get_slot_probs_neo() -> tuple:
     return proxy(slot_probs)
 
 
-def get_booster(set_name: str = "neo", rng: Optional[random.Random] = None) -> list:
+def get_booster_cards(set_name: str = "neo", rng: Optional[random.Random] = None) -> list:
     ''' Get a booster of cards '''
     slot_probs = get_booster_probs(set_name)
     if rng is None:
@@ -126,5 +154,7 @@ def get_booster(set_name: str = "neo", rng: Optional[random.Random] = None) -> l
 
 
 if __name__ == '__main__':
-    for card in get_booster():
-        print(card)
+    rng = random.Random(0)
+    pack = get_booster(rng=rng)
+    print(pack)
+    print(pack.pick(0))
