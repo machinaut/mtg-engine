@@ -1,3 +1,3 @@
 # TODO - tracking
 
-* Utilities to download card data from scryfall
+* Merge the Booster and Cards classes and just use one

@@ -41,6 +41,8 @@ class Draft:
     current_pack: int = 0
     current_pick: int = 0
     turn: int = 0
+    players: List[DraftPlayer] = field(default_factory=list)
+    boosters: List[Booster] = field(default_factory=list)
 
     def get_booster(self):
         ''' Generate a booster pack using our internal RNG '''
@@ -59,8 +61,6 @@ class Draft:
         self.players = [self.get_player(i) for i in range(self.N)]
         # Get the packs, each player starts with 1, so we need 2 more
         self.boosters = [self.get_booster() for _ in range(2 * self.N)]
-        # Will hold packs returned by players post-pick
-        self.returned_packs = {}  # indexed by player index
         # Start the draft
         self.turn = 1
         self.current_pack = 1
