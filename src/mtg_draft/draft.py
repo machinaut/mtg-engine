@@ -6,6 +6,13 @@ from typing import Optional
 
 from mtg_cards.booster import get_booster
 
+@dataclass
+class DraftHistory:
+    ''' The draft history for a single player, with picks and packs seen '''
+    players: int  # number of players
+    picks: list  # picks made by this player
+    packs: list  # packs seen by this player
+
 
 @dataclass
 class Draft:
@@ -21,10 +28,12 @@ class Draft:
             self.rng = random.Random()
         # Get the packs, each player gets 3
         booster = lambda: get_booster(set_name=self.set_name, rng=self.rng)
+        # This is the current state of the packs, and will get updated
         self.packs = [[booster() for _ in range(3)] for _ in range(self.players)]
+        # Get an immutable copy of the starting state of the packs
+        self.starting_packs = tuple(tuple(p) for p in self.packs)
         # Used to store the picks
         self.picks = [[] for _ in range(self.players)]
-        self.trajs = [[] for _ in range(self.players)]
         self.turn = 0
 
     @property
