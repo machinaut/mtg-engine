@@ -15,19 +15,16 @@ def test_deterministic():
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
-                print('pack', pack, 'pick', pick, 'player', player)
                 draft1.pick(player, 0)
     draft2 = Draft(N=N, set_name='neo', rng=random.Random(0))
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
-                print('pack', pack, 'pick', pick, 'player', player)
                 draft2.pick(player, 0)
     assert draft1.players == draft2.players
     draft3 = Draft(N=N, set_name='neo', rng=random.Random(1))
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
-                print('pack', pack, 'pick', pick, 'player', player)
                 draft3.pick(player, 0)
     assert draft1.players != draft3.players
