@@ -124,7 +124,4 @@ if __name__ == '__main__':
     draft = Draft(N=N, rng=rng)
     for i in range(45):
         for p in range(N):
-            print(f'pick {i} player {p}')
             draft.pick(p, 0)
-
-    print(len(draft.players[0].cards))

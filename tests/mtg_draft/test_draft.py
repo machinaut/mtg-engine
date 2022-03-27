@@ -10,17 +10,24 @@ from mtg_draft.draft import Draft
 
 def test_deterministic():
     rng = random.Random(0)
-    players = 8
-    draft1 = Draft(players=players, set_name='neo', rng=rng)
+    N = 8
+    draft1 = Draft(N=N, set_name='neo', rng=random.Random(0))
     for pack in range(3):
         for pick in range(15):
-            for player in range(players):
+            for player in range(N):
                 print('pack', pack, 'pick', pick, 'player', player)
                 draft1.pick(player, 0)
-    draft2 = Draft(players=players, set_name='neo', rng=rng)
+    draft2 = Draft(N=N, set_name='neo', rng=random.Random(0))
     for pack in range(3):
         for pick in range(15):
-            for player in range(players):
+            for player in range(N):
                 print('pack', pack, 'pick', pick, 'player', player)
                 draft2.pick(player, 0)
-    assert draft1.cards == draft2.cards
+    assert draft1.players == draft2.players
+    draft3 = Draft(N=N, set_name='neo', rng=random.Random(1))
+    for pack in range(3):
+        for pick in range(15):
+            for player in range(N):
+                print('pack', pack, 'pick', pick, 'player', player)
+                draft3.pick(player, 0)
+    assert draft1.players != draft3.players
