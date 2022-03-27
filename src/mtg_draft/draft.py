@@ -26,15 +26,24 @@ class Draft:
         assert self.set_name == 'neo', f'{self.set_name}; only NEO for now'
         if self.rng is None:
             self.rng = random.Random()
-        # Get the packs, each player gets 3
-        booster = lambda: get_booster(set_name=self.set_name, rng=self.rng)
+        # Get the packs, each player gets 3, saved as immutable
+        # Note that the second and future packs might not be with the same player
+        # Since we always index packs with (turn % player)
+        booster = lambda: tuple(get_booster(set_name=self.set_name, rng=self.rng))
+        self.starting_packs = tuple(tuple(booster() for _ in range(3)) for _ in range(self.players))
+        # Current packs, will get updated as players draft
+        # This is indexed by the starting position, not current player
+        self.current_packs = [list(p[0]) for p in self.starting_packs]
+        # This is which pick number we are currently on, which resets with new packs
+        self.current_pick = 0
+        # Turn increments by one with every pick
+        self.turn = 0
+        # History of packs seen by each player (immutable)
+        self.seen = [[tuple(p)] for p in self.current_packs]
         # This is the current state of the packs, and will get updated
         self.packs = [[booster() for _ in range(3)] for _ in range(self.players)]
-        # Get an immutable copy of the starting state of the packs
-        self.starting_packs = tuple(tuple(p) for p in self.packs)
-        # Used to store the picks
+        # Store the pick index for each player for each turn
         self.picks = [[] for _ in range(self.players)]
-        self.turn = 0
 
     @property
     def pack(self) -> int:
@@ -43,18 +52,26 @@ class Draft:
         assert 0 <= pack < 45, f'{pack}'
         return pack
 
-    def validate(self):
-        ''' State correctness checks '''
-        # Check that everyone has equal number of picks
-        assert all(len(p) == self.turn for p in self.picks), f'{self.picks}'
-        # Check that trajectories are all the same length
-        assert all(len(t) == len(self.trajs[0]) for t in self.trajs), f'{self.trajs}'
-
-    def get_obs(self) -> list:
+    def get_hist(self, player: int) -> list:
         ''' Get all the observations, which are tuples of (traj, picks, pack) '''
+        assert isinstance(player, int) and (0 <= player < self.players), f'{player}'
         self.validate()
-        return [(t, p, b[self.pack]) for t, p, b in zip(self.trajs, self.picks, self.packs)]
+        picks = self.picks[player]
+        packs = self.seen[player]
+        assert len(packs) == len(picks) + 1, f'{len(packs)}, {len(picks)}'
+        return DraftHistory(players=self.players, picks=picks, packs=packs)
 
+    def pick(self, player:int, choice: int):
+        ''' Make a pick for a player '''
+        assert isinstance(player, int) and (0 <= player < self.players), f'{player}'
+        current_pack = self.current_packs[self.turn % player]
+        assert isinstance(choice, int) and (0 <= choice < len(self.packs[player])), f'{choice}'
 
-draft = Draft()
-draft.get_obs()[0]
+        self.picks[player].append(choice)
+        self.seen[player].append(self.packs[player][choice])
+        self.packs[player].pop(choice)
+        self.turn += 1
+
+rng = random.Random(0)
+draft = Draft(rng=rng)
+draft.picks[0]
