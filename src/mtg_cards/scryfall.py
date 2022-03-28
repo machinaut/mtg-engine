@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # %%
+import gzip
 import json
 import logging
 import os
@@ -10,7 +11,9 @@ import requests
 
 from mtg_cards.card import Card, Cards
 
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data"))
+BASE_DIR = os.path.dirname(__file__)
+DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../data"))
+CACHE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../cache"))
 
 bulk_metadata = MappingProxyType({})
 bulk_data = MappingProxyType({})
@@ -21,26 +24,24 @@ def proxy(data):
     """Get a read-only proxy for a mapping"""
     if isinstance(data, MappingProxyType):
         return data
-    elif isinstance(data, dict):
+    if isinstance(data, dict):
         return MappingProxyType({k: proxy(v) for k, v in data.items()})
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return tuple([proxy(item) for item in data])
-    elif isinstance(data, (str, int, float, tuple, NoneType)):
+    if isinstance(data, (str, int, float, tuple, NoneType)):
         return data
-    else:
-        raise TypeError(f"Unsupported type: {type(data)}")
+    raise TypeError(f"Unsupported type: {type(data)}")
 
 
 def unproxy(data):
     """Invert the proxy(), used to save data to JSON files"""
     if isinstance(data, MappingProxyType):
         return {k: unproxy(v) for k, v in data.items()}
-    elif isinstance(data, (tuple, list)):
+    if isinstance(data, (tuple, list)):
         return [unproxy(item) for item in data]
-    elif isinstance(data, (str, int, float, NoneType)):
+    if isinstance(data, (str, int, float, NoneType)):
         return data
-    else:
-        raise TypeError(f"Unsupported type: {type(data)}")
+    raise TypeError(f"Unsupported type: {type(data)}")
 
 
 def proxy_json_file(filename: str) -> MappingProxyType:
@@ -55,7 +56,7 @@ def get_bulk_metadata() -> MappingProxyType:
     # More info: https://scryfall.com/docs/api/bulk-data
     global bulk_metadata
     if not len(bulk_metadata):
-        bulk_metdata_path = os.path.join(DATA_DIR, "bulk_metadata.json")
+        bulk_metdata_path = os.path.join(CACHE_DIR, "bulk_metadata.json")
         url = "https://api.scryfall.com/bulk-data"
         try:
             r = requests.get(url)
@@ -66,7 +67,7 @@ def get_bulk_metadata() -> MappingProxyType:
             with open(bulk_metdata_path, "w") as f:
                 json.dump(metadata, f, indent=2)
         except Exception as e:
-            logging.debug("Got exception downloading metadata:", e)
+            logging.debug(f"Got exception downloading metadata: {e}")
             logging.debug("loading from cached file")
             with open(bulk_metdata_path, "r") as f:
                 metadata = json.load(f)
@@ -124,9 +125,9 @@ def get_draft_cards(set_name: str = "neo", cache=True) -> MappingProxyType:
     global draft_cards
     set_name = set_name.lower()
     if set_name not in draft_cards:
-        cache_file = os.path.join(DATA_DIR, "draft_cache", f"{set_name}.jsonl")
+        cache_file = os.path.join(CACHE_DIR, f"{set_name}.jsonl.gz")
         if cache and os.path.exists(cache_file):
-            with open(cache_file, "r") as f:
+            with gzip.open(cache_file, "rt", encoding="UTF-8") as f:
                 cards = [json.loads(line) for line in f]
                 cards = proxy(cards)
         else:
@@ -139,7 +140,7 @@ def get_draft_cards(set_name: str = "neo", cache=True) -> MappingProxyType:
             cards = sorted(cards, key=lambda c: int(c["collector_number"]))
             # Save cache file
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-            with open(cache_file, "w") as f:
+            with gzip.open(cache_file, "wt", encoding="UTF-8") as f:
                 for card in cards:
                     f.write(json.dumps(unproxy(card)) + "\n")
         # Convert cards to card type, and cards to a tuple (immutable)
