@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 from urllib.parse import non_hierarchical
 
-from mtg_cards.booster import get_booster, Booster
+from mtg_cards.booster import get_booster
 from mtg_cards.card import Card, Cards
 
 
@@ -15,8 +15,8 @@ class DraftPlayer:
     ''' Store the state of a single player during the draft '''
     player: int
     players: int
-    pack: Optional[Booster] = None
-    seen: List[Booster] = field(default_factory=list)
+    pack: Optional[Cards] = None
+    seen: List[Cards] = field(default_factory=list)
     picks: List[int] = field(default_factory=list)
     cards: List[Card] = field(default_factory=list)
 
@@ -42,7 +42,7 @@ class Draft:
     current_pick: int = 0
     turn: int = 0
     players: List[DraftPlayer] = field(default_factory=list)
-    boosters: List[Booster] = field(default_factory=list)
+    boosters: List[Cards] = field(default_factory=list)
 
     def get_booster(self):
         ''' Generate a booster pack using our internal RNG '''

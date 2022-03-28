@@ -111,3 +111,12 @@ class Cards:
 
     def filt_basic(self):
         return self.__class__(list(filter(lambda c: c.basic, self.cards)))
+
+    def pick(self, choice: int) -> Card:
+        ''' Pick a card to remove from the pack '''
+        assert 0 <= choice < len(self.cards), f'{choice}'
+        return self.cards.pop(choice)
+
+    def copy(self) -> 'Cards':
+        ''' Get a copy of the cards '''
+        return Cards(cards=self.cards.copy())
