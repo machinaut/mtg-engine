@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# %% # 
+# %% #
+
 def isnotebook():
     # https://stackoverflow.com/a/39662359
     try:
@@ -12,3 +13,5 @@ def isnotebook():
             return False  # Other type (?)
     except NameError:
         return False      # Probably standard Python interpreter
+
+

@@ -26,3 +26,13 @@ def test_determinism():
         # Check that the cards are the same objects
         for a, b in zip(cards1, cards2):
             assert a is b
+
+def test_different():
+    """Test that the booster is different each time. """
+    packs = []
+    for i in range(1000):
+        rng = random.Random(i)
+        packs.append(booster.get_booster(set_name='neo', rng=rng))
+    # Check that the packs are different
+    for i in range(len(packs) - 1):
+        assert packs[i] != packs[i + 1], f'{packs[i]} == {packs[i + 1]}'

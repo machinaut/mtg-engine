@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # %% # Simulate a draft
 import logging
+from optparse import Option
 import random
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -17,7 +18,7 @@ class DraftPlayer:
     pack: Optional[Cards] = None
     seen: List[Cards] = field(default_factory=list)
     picks: List[int] = field(default_factory=list)
-    cards: List[Card] = field(default_factory=list)
+    cards: Cards = field(default_factory=Cards)
 
     def pick(self, pick: int) -> Card:
         ''' Pick a card to remove from the pack '''
@@ -78,6 +79,8 @@ class Draft:
         ''' Call this when all players have made a pick '''
         # assert we're not at the end of the draft
         assert 1 <= self.turn <= 45, f'{self.turn}'
+        # assert everyone has made their picks for this turn
+        assert all(len(p.picks) == self.turn for p in self.players), f'{self}'
         # increment the turn
         self.turn += 1
         if self.turn >= 45:
@@ -115,12 +118,95 @@ class Draft:
             self.pass_packs()
 
 
+@dataclass
+class DraftAgent:
+    ''' Base class for an agent participating in a draft '''
+    player: Optional[DraftPlayer] = None  # our state in the draft
+
+    def pick(self) -> int:
+        ''' Make a pick, given the state of the draft '''
+        raise NotImplementedError
+
+
+@dataclass
+class RandomDraftAgent(DraftAgent):
+    ''' An agent that picks a random card '''
+    rng: Optional[random.Random] = field(default=None, repr=False)
+
+    def __post_init__(self):
+        if self.rng is None:
+            self.rng = random.Random()
+
+    def pick(self) -> int:
+        ''' Pick a random card '''
+        assert self.player is not None, f'{self}'
+        return random.randint(0, len(self.player.pack) - 1)
+
+@dataclass
+class HumanDraftAgent(DraftAgent):
+    ''' A human interface to a draft '''
+
+    def pick(self):
+        ''' Get a human pick '''
+        assert self.player is not None, f'{self}'
+        # Print the cards
+        print("Picked:")
+        self.player.cards.render()
+        # Print the pack
+        print("Pack:")
+        self.player.pack.render()
+        for i, card in enumerate(self.player.pack):
+            print(f'{i}: {card.name}')
+
+        pick = None
+        while pick is None:
+            try:
+                pick = int(input('Pick: '))
+            except ValueError:
+                print('Invalid pick')
+                pick = None
+            if pick < 0 or pick >= len(self.player.pack):
+                print('Invalid pick')
+                pick = None
+        logging.debug(f"Picked {pick}")
+        return pick
+
+
+@dataclass
+class DraftRunner:
+    ''' Runs a draft with agents '''
+    draft: Draft
+    agents: List[DraftAgent]
+
+    @classmethod
+    def make(cls, N: int, agents: Optional[List[DraftAgent]] = None,  set_name: str='neo', rng: Optional[random.Random] = None) -> 'DraftRunner':
+        ''' Make a new draft, filling in agents with RandomDraftAgent '''
+        if rng is None:
+            rng = random.Random()
+        draft = Draft(N=N, set_name=set_name, rng=rng)
+        # Pad out given agents with RandomDraftAgent
+        if agents is None:
+            agents = [RandomDraftAgent(rng=rng) for _ in range(N)]
+        else:
+            agents.append([RandomDraftAgent(rng=rng) for _ in range(N - len(agents))])
+        assert len(agents) == N, f'{len(agents)} != {N}'
+        # Assign agents to players
+        for i, agent in enumerate(agents):
+            agent.player = draft.players[i]
+        return cls(draft=draft, agents=agents)
+
+    def run(self) -> None:
+        ''' Run the draft '''
+        while not self.draft.done:
+            print("Turn:", self.draft.turn)
+            for i, agent in enumerate(self.agents):
+                self.draft.pick(i, agent.pick())
+
+
 if __name__ == '__main__':
-    # set logging level to debug
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    N = 2
     rng = random.Random(0)
-    N = 8
-    draft = Draft(N=N, rng=rng)
-    for i in range(45):
-        for p in range(N):
-            draft.pick(p, 0)
+    agents = [HumanDraftAgent()]
+    runner = DraftRunner.make(agents=agents, N=N, rng=rng)
+    runner.run()

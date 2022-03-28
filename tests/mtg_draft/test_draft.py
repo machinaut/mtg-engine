@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from mtg_draft.draft import Draft
+from mtg_draft.draft import Draft, DraftRunner
 
 
 def fixed_draft(N=8, seed=0):
@@ -54,3 +54,11 @@ def test_conservative():
         for i in range(len(drafts_cards) - 1):
             assert drafts_cards[i] == drafts_cards[i + 1]
 
+
+def test_runner():
+    ''' Test running drafts with random agents '''
+    for N in range(2, 9):
+        for seed in range(10):
+            rng = random.Random(seed)
+            runner = DraftRunner.make(N=N, set_name='neo', rng=rng)
+            runner.run()

@@ -5,6 +5,7 @@ from types import MappingProxyType
 from typing import List
 
 import imgcat
+import PIL
 from IPython.display import Image, display
 
 from mtg_cards.util import isnotebook
@@ -53,11 +54,19 @@ class Card:
             im = imgcat.imgcat(open(img_path))
         return im
 
+    def pil(self, fmt='small'):
+        ''' Get a PIL.Image '''
+        # Prevent circular imports
+        from mtg_cards.scryfall import get_card_image
+        img_path = get_card_image(self.oracle, fmt=fmt)
+        return PIL.Image.open(img_path)
+
+
 
 @dataclass
 class Cards:
     ''' A list of cards '''
-    cards: List[Card]
+    cards: List[Card] = field(default_factory=list)
 
     def __iter__(self):
         return iter(self.cards)
@@ -71,16 +80,18 @@ class Cards:
             return self.__class__(cards)
         elif isinstance(cards, Card):  # Single card
             return cards  # technically a single card
-        elif len(cards) == 1:
-            assert False, f'{key} returned {len(cards)} cards'
-            return cards[0]
         else:
-            raise IndexError(f'Update Cards.__getitem__ for: key={key}')
+            raise IndexError(f'Cards.__getitem__({key})')
 
     def __add__(self, other):
         if isinstance(other, Cards):
             return self.__class__(self.cards + other.cards)
         raise TypeError(f'Cannot add {type(other)} to {type(self)}')
+
+    def append(self, card):
+        ''' Add a card to the pack '''
+        assert isinstance(card, Card), f'{card}'
+        self.cards.append(card)
 
     def filt_dfc(self):
         return self.__class__(list(filter(lambda c: c.dfc, self.cards)))
@@ -120,3 +131,38 @@ class Cards:
     def copy(self) -> 'Cards':
         ''' Get a copy of the cards '''
         return Cards(cards=self.cards.copy())
+
+    def render(self, fmt='small', rowsize=5):
+        ''' Display an image with rows of cards '''
+        if len(self.cards) == 0:
+            return
+        # split cards into rows of size rowsize
+        rows = [self.cards[i:i + rowsize] for i in range(0, len(self.cards), rowsize)]
+        # render each row into an image
+        imgs = []
+        for row in rows:
+            rowimgs = [card.pil(fmt=fmt) for card in row]
+            # concatenate images together horizontally
+            width = sum(img.width for img in rowimgs)
+            height = max(img.height for img in rowimgs)
+            im = PIL.Image.new('RGB', (width, height))
+            x = 0
+            for img in rowimgs:
+                im.paste(img, (x, 0))
+                x += img.width
+            imgs.append(im)
+        # concatenate all rows together vertically
+        width = max(img.width for img in imgs)
+        height = sum(img.height for img in imgs)
+        im = PIL.Image.new('RGB', (width, height))
+        y = 0
+        for img in imgs:
+            im.paste(img, (0, y))
+            y += img.height
+        # display the image
+        if isnotebook():
+            im = Image(data=im.tobytes())
+            display(im)
+        else:
+            imgcat.imgcat(im)
+        return im
