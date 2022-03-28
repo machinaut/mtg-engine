@@ -3,8 +3,7 @@
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
-from urllib.parse import non_hierarchical
+from typing import List, Optional
 
 from mtg_cards.booster import get_booster
 from mtg_cards.card import Card, Cards
@@ -44,11 +43,11 @@ class Draft:
     players: List[DraftPlayer] = field(default_factory=list)
     boosters: List[Cards] = field(default_factory=list)
 
-    def get_booster(self):
+    def get_booster(self) -> Cards:
         ''' Generate a booster pack using our internal RNG '''
         return get_booster(set_name=self.set_name, rng=self.rng)
 
-    def get_player(self, i):
+    def get_player(self, i) -> DraftPlayer:
         ''' Create a new DraftPlayer and give them one of the booster packs '''
         return DraftPlayer(player=i, players=self.N, pack=self.get_booster())
 
@@ -75,7 +74,7 @@ class Draft:
         ''' Check if we're ready to pass the packs '''
         return all(len(p.picks) == self.turn for p in self.players)
 
-    def pass_packs(self):
+    def pass_packs(self) -> None:
         ''' Call this when all players have made a pick '''
         # assert we're not at the end of the draft
         assert 1 <= self.turn <= 45, f'{self.turn}'
@@ -104,7 +103,7 @@ class Draft:
             for player, pack in zip(self.players, packs):
                 player.pack = pack
 
-    def pick(self, i: int, choice: int, auto_pass: bool = True):
+    def pick(self, i: int, choice: int, auto_pass: bool = True) -> None:
         ''' Make a pick for a player '''
         # Validate inputs
         assert isinstance(i, int) and (0 <= i < self.N), f'{i}'
