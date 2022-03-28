@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # %% # Simulate a draft
 import logging
-from optparse import Option
 import random
 from dataclasses import dataclass, field
+from optparse import Option
 from typing import List, Optional
 
 from mtg_cards.booster import get_booster
@@ -142,6 +142,7 @@ class RandomDraftAgent(DraftAgent):
         assert self.player is not None, f'{self}'
         return random.randint(0, len(self.player.pack) - 1)
 
+
 @dataclass
 class HumanDraftAgent(DraftAgent):
     ''' A human interface to a draft '''
@@ -179,7 +180,7 @@ class DraftRunner:
     agents: List[DraftAgent]
 
     @classmethod
-    def make(cls, N: int, agents: Optional[List[DraftAgent]] = None,  set_name: str='neo', rng: Optional[random.Random] = None) -> 'DraftRunner':
+    def make(cls, N: int, agents: Optional[List[DraftAgent]] = None,  set_name: str = 'neo', rng: Optional[random.Random] = None) -> 'DraftRunner':
         ''' Make a new draft, filling in agents with RandomDraftAgent '''
         if rng is None:
             rng = random.Random()
@@ -188,7 +189,8 @@ class DraftRunner:
         if agents is None:
             agents = [RandomDraftAgent(rng=rng) for _ in range(N)]
         else:
-            agents.append([RandomDraftAgent(rng=rng) for _ in range(N - len(agents))])
+            agents.append([RandomDraftAgent(rng=rng)
+                          for _ in range(N - len(agents))])
         assert len(agents) == N, f'{len(agents)} != {N}'
         # Assign agents to players
         for i, agent in enumerate(agents):

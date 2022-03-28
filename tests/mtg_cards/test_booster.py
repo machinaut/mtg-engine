@@ -2,6 +2,7 @@
 import random
 
 import pytest
+
 from mtg_cards import booster
 
 
@@ -13,6 +14,7 @@ def test_duplicates():
         for card in booster.get_booster(set_name='neo', rng=rng):
             ids.add(id(card))
     assert len(ids) == 302, 'Duplicate cards objects in booster packs.'
+
 
 def test_determinism():
     """Test that the booster is deterministic. """
@@ -26,6 +28,7 @@ def test_determinism():
         # Check that the cards are the same objects
         for a, b in zip(cards1, cards2):
             assert a is b
+
 
 def test_different():
     """Test that the booster is different each time. """

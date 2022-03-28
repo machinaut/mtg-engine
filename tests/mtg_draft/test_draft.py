@@ -55,6 +55,20 @@ def test_conservative():
             assert drafts_cards[i] == drafts_cards[i + 1]
 
 
+def test_packs_different():
+    ''' Test that the packs in a draft are different from each other'''
+    for N in range(2, 9):
+        for seed in range(10):
+            rng = random.Random(seed)
+            draft = Draft(N=N, set_name='neo', rng=rng)
+            packs = draft.boosters + [p.pack for p in draft.players]
+            assert len(packs) == 3 * N
+            for i, a in enumerate(packs):
+                for b in packs[i + 1:]:
+                    assert a.copy() != b.copy()
+                assert a == a.copy()
+
+
 def test_runner():
     ''' Test running drafts with random agents '''
     for N in range(2, 9):

@@ -62,7 +62,6 @@ class Card:
         return PIL.Image.open(img_path)
 
 
-
 @dataclass
 class Cards:
     ''' A list of cards '''
@@ -137,7 +136,8 @@ class Cards:
         if len(self.cards) == 0:
             return
         # split cards into rows of size rowsize
-        rows = [self.cards[i:i + rowsize] for i in range(0, len(self.cards), rowsize)]
+        rows = [self.cards[i:i + rowsize]
+                for i in range(0, len(self.cards), rowsize)]
         # render each row into an image
         imgs = []
         for row in rows:
