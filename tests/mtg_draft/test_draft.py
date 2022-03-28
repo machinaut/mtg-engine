@@ -7,7 +7,7 @@ from mtg_draft.draft import Draft, DraftRunner
 
 
 def fixed_draft(N=8, seed=0):
-    draft = Draft(N=N, set_name='neo', rng=random.Random(seed))
+    draft = Draft(N=N, set_name="neo", rng=random.Random(seed))
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
@@ -17,7 +17,7 @@ def fixed_draft(N=8, seed=0):
 
 def random_draft(N=8, draft_seed=0, pick_seed=0):
     rng = random.Random(pick_seed)  # used for picks
-    draft = Draft(N=N, set_name='neo', rng=random.Random(draft_seed))
+    draft = Draft(N=N, set_name="neo", rng=random.Random(draft_seed))
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
@@ -26,7 +26,7 @@ def random_draft(N=8, draft_seed=0, pick_seed=0):
 
 
 def test_deterministic():
-    ''' Check that the draft is deterministic on seed given fixed choices '''
+    """Check that the draft is deterministic on seed given fixed choices"""
     for seed in range(10):
         draft1 = fixed_draft(seed=seed)
         draft2 = fixed_draft(seed=seed)
@@ -39,7 +39,7 @@ def test_deterministic():
 
 
 def test_conservative():
-    ''' Check that all the cards in a draft are conserved '''
+    """Check that all the cards in a draft are conserved"""
     for draft_seed in range(10):
         drafts_cards = []  # list of lists of cards for a draft
         for pick_seed in range(10):
@@ -56,23 +56,23 @@ def test_conservative():
 
 
 def test_packs_different():
-    ''' Test that the packs in a draft are different from each other'''
+    """Test that the packs in a draft are different from each other"""
     for N in range(2, 9):
         for seed in range(10):
             rng = random.Random(seed)
-            draft = Draft(N=N, set_name='neo', rng=rng)
+            draft = Draft(N=N, set_name="neo", rng=rng)
             packs = draft.boosters + [p.pack for p in draft.players]
             assert len(packs) == 3 * N
             for i, a in enumerate(packs):
-                for b in packs[i + 1:]:
+                for b in packs[i + 1 :]:
                     assert a.copy() != b.copy()
                 assert a == a.copy()
 
 
 def test_runner():
-    ''' Test running drafts with random agents '''
+    """Test running drafts with random agents"""
     for N in range(2, 9):
         for seed in range(10):
             rng = random.Random(seed)
-            runner = DraftRunner.make(N=N, set_name='neo', rng=rng)
+            runner = DraftRunner.make(N=N, set_name="neo", rng=rng)
             runner.run()

@@ -18,33 +18,34 @@ class Card:
 
     @classmethod
     def from_scryfall(cls, card):
-        assert isinstance(card, MappingProxyType), f'{card}'
-        return cls(name=card['name'], oracle=card)
+        assert isinstance(card, MappingProxyType), f"{card}"
+        return cls(name=card["name"], oracle=card)
 
     @property
     def rarity(self):
-        return self.oracle['rarity']
+        return self.oracle["rarity"]
 
     @property
     def type_line(self):
-        return self.oracle['type_line']
+        return self.oracle["type_line"]
 
     @property
     def dfc(self):
-        return 'card_faces' in self.oracle
+        return "card_faces" in self.oracle
 
     @property
     def land(self):
-        return 'Land' in self.type_line
+        return "Land" in self.type_line
 
     @property
     def basic(self):
-        return 'Basic' in self.type_line
+        return "Basic" in self.type_line
 
-    def render(self, fmt='png'):
-        ''' Display a card image '''
+    def render(self, fmt="png"):
+        """Display a card image"""
         # Prevent circular imports
         from mtg_cards.scryfall import get_card_image
+
         img_path = get_card_image(self.oracle, fmt=fmt)
         # Render the file at img_path
         if isnotebook():
@@ -54,17 +55,19 @@ class Card:
             im = imgcat.imgcat(open(img_path))
         return im
 
-    def pil(self, fmt='small'):
-        ''' Get a PIL.Image '''
+    def pil(self, fmt="small"):
+        """Get a PIL.Image"""
         # Prevent circular imports
         from mtg_cards.scryfall import get_card_image
+
         img_path = get_card_image(self.oracle, fmt=fmt)
         return PIL.Image.open(img_path)
 
 
 @dataclass
 class Cards:
-    ''' A list of cards '''
+    """A list of cards"""
+
     cards: List[Card] = field(default_factory=list)
 
     def __iter__(self):
@@ -80,16 +83,16 @@ class Cards:
         elif isinstance(cards, Card):  # Single card
             return cards  # technically a single card
         else:
-            raise IndexError(f'Cards.__getitem__({key})')
+            raise IndexError(f"Cards.__getitem__({key})")
 
     def __add__(self, other):
         if isinstance(other, Cards):
             return self.__class__(self.cards + other.cards)
-        raise TypeError(f'Cannot add {type(other)} to {type(self)}')
+        raise TypeError(f"Cannot add {type(other)} to {type(self)}")
 
     def append(self, card):
-        ''' Add a card to the pack '''
-        assert isinstance(card, Card), f'{card}'
+        """Add a card to the pack"""
+        assert isinstance(card, Card), f"{card}"
         self.cards.append(card)
 
     def filt_dfc(self):
@@ -102,16 +105,16 @@ class Cards:
         return self.__class__(list(filter(lambda c: c.rarity == rarity, self.cards)))
 
     def filt_common(self):
-        return self.filt_rarity('common')
+        return self.filt_rarity("common")
 
     def filt_uncommon(self):
-        return self.filt_rarity('uncommon')
+        return self.filt_rarity("uncommon")
 
     def filt_rare(self):
-        return self.filt_rarity('rare')
+        return self.filt_rarity("rare")
 
     def filt_mythic(self):
-        return self.filt_rarity('mythic')
+        return self.filt_rarity("mythic")
 
     def filt_land(self):
         return self.__class__(list(filter(lambda c: c.land, self.cards)))
@@ -123,21 +126,20 @@ class Cards:
         return self.__class__(list(filter(lambda c: c.basic, self.cards)))
 
     def pick(self, choice: int) -> Card:
-        ''' Pick a card to remove from the pack '''
-        assert 0 <= choice < len(self.cards), f'{choice}'
+        """Pick a card to remove from the pack"""
+        assert 0 <= choice < len(self.cards), f"{choice}"
         return self.cards.pop(choice)
 
-    def copy(self) -> 'Cards':
-        ''' Get a copy of the cards '''
+    def copy(self) -> "Cards":
+        """Get a copy of the cards"""
         return Cards(cards=self.cards.copy())
 
-    def render(self, fmt='small', rowsize=5):
-        ''' Display an image with rows of cards '''
+    def render(self, fmt="small", rowsize=5):
+        """Display an image with rows of cards"""
         if len(self.cards) == 0:
             return
         # split cards into rows of size rowsize
-        rows = [self.cards[i:i + rowsize]
-                for i in range(0, len(self.cards), rowsize)]
+        rows = [self.cards[i : i + rowsize] for i in range(0, len(self.cards), rowsize)]
         # render each row into an image
         imgs = []
         for row in rows:
@@ -145,7 +147,7 @@ class Cards:
             # concatenate images together horizontally
             width = sum(img.width for img in rowimgs)
             height = max(img.height for img in rowimgs)
-            im = PIL.Image.new('RGB', (width, height))
+            im = PIL.Image.new("RGB", (width, height))
             x = 0
             for img in rowimgs:
                 im.paste(img, (x, 0))
@@ -154,7 +156,7 @@ class Cards:
         # concatenate all rows together vertically
         width = max(img.width for img in imgs)
         height = sum(img.height for img in imgs)
-        im = PIL.Image.new('RGB', (width, height))
+        im = PIL.Image.new("RGB", (width, height))
         y = 0
         for img in imgs:
             im.paste(img, (0, y))

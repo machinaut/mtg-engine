@@ -12,7 +12,8 @@ from mtg_cards.card import Card, Cards
 
 @dataclass
 class DraftPlayer:
-    ''' Store the state of a single player during the draft '''
+    """Store the state of a single player during the draft"""
+
     player: int
     players: int
     pack: Optional[Cards] = None
@@ -21,8 +22,8 @@ class DraftPlayer:
     cards: Cards = field(default_factory=Cards)
 
     def pick(self, pick: int) -> Card:
-        ''' Pick a card to remove from the pack '''
-        assert 0 <= pick < len(self.pack), f'{pick}'
+        """Pick a card to remove from the pack"""
+        assert 0 <= pick < len(self.pack), f"{pick}"
         pack = self.pack
         seen = pack.copy()
         card = pack.pick(pick)
@@ -34,9 +35,10 @@ class DraftPlayer:
 
 @dataclass
 class Draft:
-    ''' Simulate a draft '''
+    """Simulate a draft"""
+
     N: int = 8
-    set_name: str = 'neo'
+    set_name: str = "neo"
     rng: Optional[random.Random] = None
     current_pack: int = 0
     current_pick: int = 0
@@ -45,16 +47,16 @@ class Draft:
     boosters: List[Cards] = field(default_factory=list)
 
     def get_booster(self) -> Cards:
-        ''' Generate a booster pack using our internal RNG '''
+        """Generate a booster pack using our internal RNG"""
         return get_booster(set_name=self.set_name, rng=self.rng)
 
     def get_player(self, i) -> DraftPlayer:
-        ''' Create a new DraftPlayer and give them one of the booster packs '''
+        """Create a new DraftPlayer and give them one of the booster packs"""
         return DraftPlayer(player=i, players=self.N, pack=self.get_booster())
 
     def __post_init__(self):
-        assert 1 < self.N < 9, f'{self.N}'
-        assert self.set_name == 'neo', f'{self.set_name}; only NEO for now'
+        assert 1 < self.N < 9, f"{self.N}"
+        assert self.set_name == "neo", f"{self.set_name}; only NEO for now"
         if self.rng is None:
             self.rng = random.Random()
         # Player objects, used to track each player's state
@@ -68,19 +70,19 @@ class Draft:
 
     @property
     def done(self) -> bool:
-        ''' Check if the draft is done '''
+        """Check if the draft is done"""
         return self.turn >= 45
 
     def ready_to_pass(self) -> bool:
-        ''' Check if we're ready to pass the packs '''
+        """Check if we're ready to pass the packs"""
         return all(len(p.picks) == self.turn for p in self.players)
 
     def pass_packs(self) -> None:
-        ''' Call this when all players have made a pick '''
+        """Call this when all players have made a pick"""
         # assert we're not at the end of the draft
-        assert 1 <= self.turn <= 45, f'{self.turn}'
+        assert 1 <= self.turn <= 45, f"{self.turn}"
         # assert everyone has made their picks for this turn
-        assert all(len(p.picks) == self.turn for p in self.players), f'{self}'
+        assert all(len(p.picks) == self.turn for p in self.players), f"{self}"
         # increment the turn
         self.turn += 1
         if self.turn >= 45:
@@ -90,7 +92,7 @@ class Draft:
         if self.current_pick > 15:
             logging.debug("Opening new pack")
             # Assert all the current packs are empty
-            assert all(len(p.pack) == 0 for p in self.players), f'{self}'
+            assert all(len(p.pack) == 0 for p in self.players), f"{self}"
             self.current_pack += 1
             self.current_pick = 1
             # Get new packs from boosters
@@ -107,9 +109,9 @@ class Draft:
                 player.pack = pack
 
     def pick(self, i: int, choice: int, auto_pass: bool = True) -> None:
-        ''' Make a pick for a player '''
+        """Make a pick for a player"""
         # Validate inputs
-        assert isinstance(i, int) and (0 <= i < self.N), f'{i}'
+        assert isinstance(i, int) and (0 <= i < self.N), f"{i}"
         player = self.players[i]
         player.pick(choice)
 
@@ -120,17 +122,19 @@ class Draft:
 
 @dataclass
 class DraftAgent:
-    ''' Base class for an agent participating in a draft '''
+    """Base class for an agent participating in a draft"""
+
     player: Optional[DraftPlayer] = None  # our state in the draft
 
     def pick(self) -> int:
-        ''' Make a pick, given the state of the draft '''
+        """Make a pick, given the state of the draft"""
         raise NotImplementedError
 
 
 @dataclass
 class RandomDraftAgent(DraftAgent):
-    ''' An agent that picks a random card '''
+    """An agent that picks a random card"""
+
     rng: Optional[random.Random] = field(default=None, repr=False)
 
     def __post_init__(self):
@@ -138,18 +142,18 @@ class RandomDraftAgent(DraftAgent):
             self.rng = random.Random()
 
     def pick(self) -> int:
-        ''' Pick a random card '''
-        assert self.player is not None, f'{self}'
+        """Pick a random card"""
+        assert self.player is not None, f"{self}"
         return random.randint(0, len(self.player.pack) - 1)
 
 
 @dataclass
 class HumanDraftAgent(DraftAgent):
-    ''' A human interface to a draft '''
+    """A human interface to a draft"""
 
     def pick(self):
-        ''' Get a human pick '''
-        assert self.player is not None, f'{self}'
+        """Get a human pick"""
+        assert self.player is not None, f"{self}"
         # Print the cards
         print("Picked:")
         self.player.cards.render()
@@ -157,17 +161,17 @@ class HumanDraftAgent(DraftAgent):
         print("Pack:")
         self.player.pack.render()
         for i, card in enumerate(self.player.pack):
-            print(f'{i}: {card.name}')
+            print(f"{i}: {card.name}")
 
         pick = None
         while pick is None:
             try:
-                pick = int(input('Pick: '))
+                pick = int(input("Pick: "))
             except ValueError:
-                print('Invalid pick')
+                print("Invalid pick")
                 pick = None
             if pick < 0 or pick >= len(self.player.pack):
-                print('Invalid pick')
+                print("Invalid pick")
                 pick = None
         logging.debug(f"Picked {pick}")
         return pick
@@ -175,13 +179,20 @@ class HumanDraftAgent(DraftAgent):
 
 @dataclass
 class DraftRunner:
-    ''' Runs a draft with agents '''
+    """Runs a draft with agents"""
+
     draft: Draft
     agents: List[DraftAgent]
 
     @classmethod
-    def make(cls, N: int, agents: Optional[List[DraftAgent]] = None,  set_name: str = 'neo', rng: Optional[random.Random] = None) -> 'DraftRunner':
-        ''' Make a new draft, filling in agents with RandomDraftAgent '''
+    def make(
+        cls,
+        N: int,
+        agents: Optional[List[DraftAgent]] = None,
+        set_name: str = "neo",
+        rng: Optional[random.Random] = None,
+    ) -> "DraftRunner":
+        """Make a new draft, filling in agents with RandomDraftAgent"""
         if rng is None:
             rng = random.Random()
         draft = Draft(N=N, set_name=set_name, rng=rng)
@@ -189,26 +200,24 @@ class DraftRunner:
         if agents is None:
             agents = [RandomDraftAgent(rng=rng) for _ in range(N)]
         else:
-            agents.append([RandomDraftAgent(rng=rng)
-                          for _ in range(N - len(agents))])
-        assert len(agents) == N, f'{len(agents)} != {N}'
+            agents.extend([RandomDraftAgent(rng=rng) for _ in range(N - len(agents))])
+        assert len(agents) == N, f"{len(agents)} != {N}"
         # Assign agents to players
         for i, agent in enumerate(agents):
             agent.player = draft.players[i]
         return cls(draft=draft, agents=agents)
 
     def run(self) -> None:
-        ''' Run the draft '''
+        """Run the draft"""
         while not self.draft.done:
             print("Turn:", self.draft.turn)
             for i, agent in enumerate(self.agents):
                 self.draft.pick(i, agent.pick())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG)
-    N = 2
     rng = random.Random(0)
     agents = [HumanDraftAgent()]
-    runner = DraftRunner.make(agents=agents, N=N, rng=rng)
+    runner = DraftRunner.make(N=2, agents=agents, rng=rng)
     runner.run()

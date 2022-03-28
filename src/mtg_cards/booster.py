@@ -15,29 +15,26 @@ from mtg_cards.scryfall import get_draft_cards, proxy
 booster_probs = MappingProxyType({})
 
 
-
-
-def get_booster(set_name: str='neo', rng: Optional[random.Random] = None) -> Cards:
-    ''' Get a booster pack '''
+def get_booster(set_name: str = "neo", rng: Optional[random.Random] = None) -> Cards:
+    """Get a booster pack"""
     return get_booster_cards(set_name=set_name, rng=rng)
 
 
 def get_booster_probs(set_name: str = "neo") -> tuple:
-    ''' Get the probability for each card of each slot in a booster '''
+    """Get the probability for each card of each slot in a booster"""
     global booster_probs
     if set_name not in booster_probs:
         logging.info(f"Computing booster probs for {set_name}")
-        if set_name == 'neo':
+        if set_name == "neo":
             slot_probs = get_slot_probs_neo()
         else:
-            raise ValueError(f'Unknown set {set_name}')
-        booster_probs = MappingProxyType(
-            booster_probs | {set_name: proxy(slot_probs)})
+            raise ValueError(f"Unknown set {set_name}")
+        booster_probs = MappingProxyType(booster_probs | {set_name: proxy(slot_probs)})
     return booster_probs[set_name]
 
 
 def get_slot_probs_neo() -> tuple:
-    ''' Get a list of probabilities of cards for each slot
+    """Get a list of probabilities of cards for each slot
     https://magic.wizards.com/en/articles/archive/feature/kamigawa-neon-dynasty-product-overview-2022-01-27
     1 Rare or mythic rare card (mythic rare at 1 in 7.4, approximately)
     1 Double-faced common or uncommon card
@@ -49,10 +46,10 @@ def get_slot_probs_neo() -> tuple:
 
     The return value is a MappingProxyType of card position to lists
         each list is a pair of (probability, card)
-    '''
+    """
     slot_probs = []
-    cards = get_draft_cards('neo')
-    assert isinstance(cards, Cards), f'Expected Cards, got {type(cards)}'
+    cards = get_draft_cards("neo")
+    assert isinstance(cards, Cards), f"Expected Cards, got {type(cards)}"
     # Rares and Mythic slot
     # List the cards first
     rares = cards.filt_rare()
@@ -64,8 +61,9 @@ def get_slot_probs_neo() -> tuple:
     probs = [rare_prob] * len(rares) + [mythic_prob] * len(mythics)
     probs = np.array(probs) / np.sum(probs)
     assert len(probs) == len(rares_and_mythics)
-    assert (1/8) < (mythic_prob * len(mythics)) < (1 /
-                                                   7), f'P: {mythic_prob * len(mythics)}'
+    assert (
+        (1 / 8) < (mythic_prob * len(mythics)) < (1 / 7)
+    ), f"P: {mythic_prob * len(mythics)}"
     slot_probs.append(list(zip(probs, rares_and_mythics)))
     # Double-faced common or uncommon
     common_uncommon = cards.filt_common() + cards.filt_uncommon()
@@ -88,7 +86,7 @@ def get_slot_probs_neo() -> tuple:
     common_prob = 2 / 3 / len(common_single_faced)
     probs = [foil_prob] * len(cards) + [common_prob] * len(common_single_faced)
     probs = np.array(probs) / np.sum(probs)
-    assert len(probs) == len(maybe_foil), f'{len(probs)} {len(maybe_foil)}'
+    assert len(probs) == len(maybe_foil), f"{len(probs)} {len(maybe_foil)}"
     # There's duplicates between the two lists, so we need to combine them
     combined_cards = []
     combined_probs = []
@@ -112,15 +110,17 @@ def get_slot_probs_neo() -> tuple:
     for sp in slot_probs:
         # check that probabilities sum to 1
         probs = [p for p, c in sp]
-        assert np.isclose(np.sum(probs), 1.0), f'{np.sum(probs)}'
+        assert np.isclose(np.sum(probs), 1.0), f"{np.sum(probs)}"
         sp.sort(key=lambda x: x[1].name)
     # Check we got all 15 slots
-    assert len(slot_probs) == 15, f'{len(slot_probs)}'
+    assert len(slot_probs) == 15, f"{len(slot_probs)}"
     return proxy(slot_probs)
 
 
-def get_booster_cards(set_name: str = "neo", rng: Optional[random.Random] = None) -> list:
-    ''' Get a booster of cards '''
+def get_booster_cards(
+    set_name: str = "neo", rng: Optional[random.Random] = None
+) -> list:
+    """Get a booster of cards"""
     slot_probs = get_booster_probs(set_name)
     if rng is None:
         rng = random
@@ -128,12 +128,12 @@ def get_booster_cards(set_name: str = "neo", rng: Optional[random.Random] = None
     pack = []
     for sp in slot_probs:
         probs, cards = zip(*sp)
-        choice, = rng.choices(cards, probs, k=1)
+        (choice,) = rng.choices(cards, probs, k=1)
         pack.append(choice)
     return Cards(pack)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     rng = random.Random(0)
     pack = get_booster(rng=rng)
     print(pack)
