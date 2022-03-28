@@ -2,13 +2,13 @@
 # %% # Sample random booster packs
 import logging
 import random
+from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Optional
-from dataclasses import dataclass
 
 import numpy as np
 
-from mtg_cards.card import Cards, Card
+from mtg_cards.card import Card, Cards
 from mtg_cards.scryfall import get_draft_cards, proxy
 
 # Use this to cache computing the booster probabilities
