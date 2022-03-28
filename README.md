@@ -21,7 +21,7 @@ The draft is a synchronous-stepping game, with a human interface for debugging.
 
 TODO: pull in 17lands data on drafts to use for simulation.
 
-### `mtg_deck` - Deck utilities
+### `mtg_decks` - Deck utilities
 
 This simulates deckbuilding, starting with sealed limited (6-booster).
 
