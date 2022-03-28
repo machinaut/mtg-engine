@@ -1,6 +1,8 @@
 # mtg-engine
 Python Engine for Magic: the Gathering
 
+![Pytest Status](https://github.com/machinaut/mtg-engine/actions/workflows/pytest.yml/badge.svg) ![Pylint Status](https://github.com/machinaut/mtg-engine/actions/workflows/pylint.yml/badge.svg)
+
 **NOTA BENE:** Only supports a single set for now: [NEO (Kamigawa: Neon Dynasty)](https://scryfall.com/sets/neo).
 
 ## Packages
