@@ -35,6 +35,11 @@ class Deck:
         """Render the cards in the pool / sideboard"""
         self.pool.render(rowsize=15)
 
+    def sort(self):
+        """Sort the main deck and pool"""
+        self.pool.sort()
+        self.main.sort()
+
 
 @dataclass
 class LimitedDeck(Deck):
@@ -46,6 +51,11 @@ class LimitedDeck(Deck):
         """Get a handle to the set object"""
         self.set_ = get_set(self.set_name)
 
+    @property
+    def basics(self):
+        """Basic lands can always be picked from"""
+        return self.set_.basics
+
     def legal(self) -> bool:
         """Return true if this deck is legal for its format"""
         # Are all the cards in the deck in the set
@@ -56,3 +66,23 @@ class LimitedDeck(Deck):
             return False
         # That's it!
         return True
+
+    def pick(self, card):
+        """Pick a card for the main deck"""
+        if card in self.pool:
+            self.main.append(card)
+            self.pool.remove(card)
+        elif card in self.basics:
+            self.main.append(card)
+        else:
+            raise ValueError(f"{card} is not in the pool")
+
+    def unpick(self, card):
+        """Unpick a card from the main deck"""
+        if card in self.main:
+            # Only move non basic lands to the pool
+            if card not in self.basics:
+                self.pool.append(card)
+            self.main.remove(card)
+        else:
+            raise ValueError(f"{card} is not in the main deck")

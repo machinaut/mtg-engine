@@ -159,6 +159,11 @@ class Cards:
         assert isinstance(card, Card), f"{card}"
         self.cards.append(card)
 
+    def remove(self, card):
+        """Remove a card from the pack"""
+        assert isinstance(card, Card), f"{card}"
+        self.cards.remove(card)
+
     def filt_dfc(self):
         """Filter to just cards that are double-faced"""
         return self.__class__(list(filter(lambda c: c.dfc, self.cards)))
