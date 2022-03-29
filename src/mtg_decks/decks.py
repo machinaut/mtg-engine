@@ -49,6 +49,16 @@ class Deck:
         self.pool.sort()
         self.main.sort()
 
+    @property
+    def can_pick(self):
+        """Return true if there are any cards in the pool"""
+        return len(self.pool) > len(self.main)
+
+    @property
+    def can_unpick(self):
+        """Return true if there are any cards in the main deck"""
+        return len(self.main) > 0
+
 
 @dataclass
 class LimitedDeck(Deck):
@@ -91,16 +101,6 @@ class LimitedDeck(Deck):
             self.main.remove(card)
         else:
             raise ValueError(f"{card} is not in the main deck")
-
-    @property
-    def can_pick(self):
-        """Return true if there are any cards in the pool"""
-        return len(self.sideboard) > 0
-
-    @property
-    def can_unpick(self):
-        """Return true if there are any cards in the main deck"""
-        return len(self.main) > 0
 
 
 @dataclass
