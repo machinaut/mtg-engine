@@ -17,15 +17,20 @@ from mtg_cards.sets import get_set
 class Deck:
     """Interface for building a deck from a pool of cards.
 
-    Any number of basic lands may be added at any time.
+    The pool is fixed and shouldn't change.
 
-    Individual cards should be moved from the pool to the main deck.
+    Any number of basic lands may be picked at any time.
 
-    The remaining cards in the pool will be the sideboard.
+    Any not picked cards are in the sideboard.
     """
 
     pool: Cards
     main: Cards = field(default_factory=Cards)
+
+    @property
+    def sideboard(self):
+        """Return the sideboard"""
+        return self.pool - self.main
 
     def legal(self) -> bool:
         """Return true if this deck is legal for its format"""
@@ -73,20 +78,16 @@ class LimitedDeck(Deck):
 
     def pick(self, card):
         """Pick a card for the main deck"""
-        if card in self.pool:
+        if self.pool.count(card) > self.main.count(card):
             self.main.append(card)
-            self.pool.remove(card)
         elif card in self.basics:
             self.main.append(card)
         else:
-            raise ValueError(f"{card} is not in the pool")
+            raise ValueError(f"None left in the pool {card}")
 
     def unpick(self, card):
         """Unpick a card from the main deck"""
         if card in self.main:
-            # Only move non basic lands to the pool
-            if card not in self.basics:
-                self.pool.append(card)
             self.main.remove(card)
         else:
             raise ValueError(f"{card} is not in the main deck")
@@ -94,7 +95,7 @@ class LimitedDeck(Deck):
     @property
     def can_pick(self):
         """Return true if there are any cards in the pool"""
-        return len(self.pool) > 0
+        return len(self.sideboard) > 0
 
     @property
     def can_unpick(self):
@@ -136,7 +137,7 @@ class RandomDeckAgent(DeckAgent):
         """Pick a random card from the pool"""
         assert self.deck is not None, f"{self}"
         assert self.deck.can_pick
-        card = self.rng.choice(self.deck.pool)
+        card = self.rng.choice(self.deck.sideboard)
         self.deck.pick(card)
 
     def unpick(self):

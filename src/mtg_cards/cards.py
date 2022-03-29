@@ -149,6 +149,19 @@ class Cards:
             return self.__class__(self.cards + other.cards)
         raise TypeError(f"Cannot add {type(other)} to {type(self)}")
 
+    def __sub__(self, other):
+        """Return a copy of these cards, but without the other cards"""
+        assert isinstance(other, Cards), f"{other}"
+        other = other.sorted_copy()
+        result = []
+        for card in self.sorted_copy():
+            if len(other) and card == other[0]:
+                other.cards.pop(0)
+            else:  # Add every card thats not in other
+                result.append(card)
+        assert len(other) == 0, f"Subtract leftover {other}"
+        return self.__class__(result)
+
     def __contains__(self, card):
         """Is a given card in this set of cards"""
         assert isinstance(card, Card), f"{card}"
@@ -163,6 +176,11 @@ class Cards:
         """Remove a card from the pack"""
         assert isinstance(card, Card), f"{card}"
         self.cards.remove(card)
+
+    def count(self, card):
+        """Get the number of times a card appears"""
+        assert isinstance(card, Card), f"{card}"
+        return self.cards.count(card)
 
     def filt_dfc(self):
         """Filter to just cards that are double-faced"""
@@ -226,7 +244,13 @@ class Cards:
 
     def copy(self) -> "Cards":
         """Get a copy of the cards"""
-        return Cards(cards=self.cards.copy())
+        return self.__class__(cards=self.cards.copy())
+
+    def sorted_copy(self) -> "Cards":
+        """Get a copy of the cards, sorted by set and collector number"""
+        cards = self.copy()
+        cards.sort()
+        return cards
 
     def render(self, fmt="small", rowsize=5):
         """Display an image with rows of cards"""
