@@ -6,6 +6,7 @@
 from dataclasses import dataclass, field
 
 from mtg_cards.cards import Cards
+from mtg_cards.sets import get_set
 
 
 @dataclass
@@ -26,6 +27,14 @@ class Deck:
         """Return true if this deck is legal for its format"""
         raise NotImplementedError
 
+    def render(self):
+        """Render the cards in the main deck"""
+        self.main.render(rowsize=10)
+
+    def render_pool(self):
+        """Render the cards in the pool / sideboard"""
+        self.pool.render(rowsize=15)
+
 
 @dataclass
 class LimitedDeck(Deck):
@@ -33,6 +42,17 @@ class LimitedDeck(Deck):
 
     set_name: str = "neo"
 
+    def __post_init__(self):
+        """Get a handle to the set object"""
+        self.set_ = get_set(self.set_name)
+
     def legal(self) -> bool:
         """Return true if this deck is legal for its format"""
+        # Are all the cards in the deck in the set
+        if not all(card in self.set_ for card in self.pool):
+            return False
+        # Is the main deck at least 40 cards
+        if len(self.main) < 40:
+            return False
+        # That's it!
         return True

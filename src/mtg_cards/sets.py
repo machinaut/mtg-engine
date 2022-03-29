@@ -65,6 +65,11 @@ class Set:
         """Render the cards in a set"""
         return self.cards.render(rowsize=30)
 
+    def __contains__(self, card: Card) -> bool:
+        """Check if a card is in this set"""
+        assert isinstance(card, Card), f"{card}"
+        return card in self.cards
+
 
 @dataclass
 class SetCache:

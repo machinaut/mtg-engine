@@ -149,6 +149,11 @@ class Cards:
             return self.__class__(self.cards + other.cards)
         raise TypeError(f"Cannot add {type(other)} to {type(self)}")
 
+    def __contains__(self, card):
+        """Is a given card in this set of cards"""
+        assert isinstance(card, Card), f"{card}"
+        return card in self.cards
+
     def append(self, card):
         """Add a card to the pack"""
         assert isinstance(card, Card), f"{card}"
