@@ -4,7 +4,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Optional
 
-from mtg_cards.booster import get_booster
+from mtg_cards.booster import BoosterBox
 from mtg_cards.cards import Card, Cards
 
 
@@ -17,7 +17,8 @@ class Sealed:
     def make(cls, set_name: str = "neo", rng: Optional[random.Random] = None):
         if rng is None:
             rng = random.Random()
-        packs = [get_booster(set_name=set_name, rng=rng) for _ in range(6)]
+        box = BoosterBox(set_name=set_name, rng=rng)
+        packs = [box.get_booster() for _ in range(6)]
         cards = sum(packs, Cards())  # Concatenate
         return cls(cards=cards)
 

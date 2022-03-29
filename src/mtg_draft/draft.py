@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from optparse import Option
 from typing import List, Optional
 
-from mtg_cards.booster import get_booster
+from mtg_cards.booster import BoosterBox
 from mtg_cards.cards import Card, Cards
 
 
@@ -46,23 +46,20 @@ class Draft:
     players: List[DraftPlayer] = field(default_factory=list)
     boosters: List[Cards] = field(default_factory=list)
 
-    def get_booster(self) -> Cards:
-        """Generate a booster pack using our internal RNG"""
-        return get_booster(set_name=self.set_name, rng=self.rng)
-
     def get_player(self, i) -> DraftPlayer:
         """Create a new DraftPlayer and give them one of the booster packs"""
-        return DraftPlayer(player=i, players=self.N, pack=self.get_booster())
+        return DraftPlayer(player=i, players=self.N, pack=self.box.get_booster())
 
     def __post_init__(self):
         assert 1 < self.N < 9, f"{self.N}"
         assert self.set_name == "neo", f"{self.set_name}; only NEO for now"
         if self.rng is None:
             self.rng = random.Random()
+        self.box = BoosterBox(set_name=self.set_name, rng=self.rng)
         # Player objects, used to track each player's state
         self.players = [self.get_player(i) for i in range(self.N)]
         # Get the packs, each player starts with 1, so we need 2 more
-        self.boosters = [self.get_booster() for _ in range(2 * self.N)]
+        self.boosters = [self.box.get_booster() for _ in range(2 * self.N)]
         # Start the draft
         self.turn = 1
         self.current_pack = 1
