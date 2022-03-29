@@ -7,21 +7,25 @@ from mtg_draft.draft import Draft, DraftRunner
 
 
 def fixed_draft(N=8, seed=0):
-    draft = Draft(N=N, set_name="neo", rng=random.Random(seed))
+    draft = Draft(num_players=N, set_name="neo", rng=random.Random(seed))
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
                 draft.pick(player, 0)
+    for player in draft.players:
+        assert len(player.cards) == 45
     return draft
 
 
 def random_draft(N=8, draft_seed=0, pick_seed=0):
     rng = random.Random(pick_seed)  # used for picks
-    draft = Draft(N=N, set_name="neo", rng=random.Random(draft_seed))
+    draft = Draft(num_players=N, set_name="neo", rng=random.Random(draft_seed))
     for pack in range(3):
         for pick in range(15):
             for player in range(N):
                 draft.pick(player, rng.randint(0, 15 - pick - 1))
+    for player in draft.players:
+        assert len(player.cards) == 45
     return draft
 
 
@@ -60,7 +64,7 @@ def test_packs_different():
     for N in range(2, 9):
         for seed in range(10):
             rng = random.Random(seed)
-            draft = Draft(N=N, set_name="neo", rng=rng)
+            draft = Draft(num_players=N, set_name="neo", rng=rng)
             packs = draft.boosters + [p.pack for p in draft.players]
             assert len(packs) == 3 * N
             for i, a in enumerate(packs):

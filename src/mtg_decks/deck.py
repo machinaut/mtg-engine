@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+"""
+`mtg_decks.deck` - Deck class and subclasses (like Limited)
+"""
 # %% # Limited Deck Building
-
 from dataclasses import dataclass, field
 
-from mtg_cards.cards import Card, Cards
+from mtg_cards.cards import Cards
 
 
 @dataclass
@@ -33,4 +35,4 @@ class LimitedDeck(Deck):
 
     def legal(self) -> bool:
         """Return true if this deck is legal for its format"""
-        pass
+        return True
