@@ -17,7 +17,7 @@ https://magic.wizards.com/en/articles/archive/feature/kamigawa-neon-dynasty-prod
 """
 import numpy as np
 
-from mtg_cards.booster import BoosterProbs, Prob, SlotProb
+from mtg_cards.booster_probs import BoosterProbs, SlotProb
 from mtg_cards.sets import get_set
 
 
