@@ -42,6 +42,10 @@ class Card:
     name: str
     oracle: MappingProxyType = field(repr=False)
 
+    def __hash__(self) -> int:
+        """Hash based on the name of the card"""
+        return hash(self.name)
+
     @classmethod
     def from_json(cls, card):
         """Create a Card object from a scryfall JSON card"""

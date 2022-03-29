@@ -1,140 +1,138 @@
 #!/usr/bin/env python
+"""
+`mtg_cards.booster` MTG card booster dataclasses
+
+Callers should make BoosterBox objects, and use them to make boosters.
+"""
 # %% # Sample random booster packs
 import logging
 import random
-from dataclasses import dataclass
-from types import MappingProxyType
-from typing import Optional
-
-import numpy as np
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 from mtg_cards.cards import Card, Cards
-from mtg_cards.scryfall import get_draft_cards, proxy
-
-# Use this to cache computing the booster probabilities
-booster_probs = MappingProxyType({})
 
 
-def get_booster(set_name: str = "neo", rng: Optional[random.Random] = None) -> Cards:
-    """Get a booster pack"""
-    return get_booster_cards(set_name=set_name, rng=rng)
+@dataclass
+class Prob:
+    """A probability for a single card in a single slot"""
+
+    card: Card
+    prob: float
 
 
-def get_booster_probs(set_name: str = "neo") -> tuple:
-    """Get the probability for each card of each slot in a booster"""
-    global booster_probs
-    if set_name not in booster_probs:
-        logging.info(f"Computing booster probs for {set_name}")
-        if set_name == "neo":
-            slot_probs = get_slot_probs_neo()
-        else:
-            raise ValueError(f"Unknown set {set_name}")
-        booster_probs = MappingProxyType(booster_probs | {set_name: proxy(slot_probs)})
-    return booster_probs[set_name]
+@dataclass
+class SlotProb:
+    """Probabilities for a single slot in a booster"""
+
+    probs: List[Prob] = field(default_factory=list)
+
+    @classmethod
+    def from_cards_probs(cls, cards: Cards, probs: List[float]):
+        """Create a SlotProb from a list of cards and their probabilities"""
+        assert len(cards) == len(probs)
+        return cls([Prob(card, prob) for card, prob in zip(cards, probs)])
+
+    def __add__(self, other):
+        """Combine probabilites of duplicate cards"""
+        assert isinstance(other, SlotProb), f"{other} is not a SlotProb"
+        combined_probs = defaultdict(float)
+        for prob in self.probs + other.probs:
+            combined_probs[prob.card] += prob.prob
+        return SlotProb([Prob(card, prob) for card, prob in combined_probs.items()])
+
+    def normalize(self):
+        """Return normalized probabilities to sum to 1"""
+        total = sum(prob.prob for prob in self.probs)
+        return SlotProb([Prob(prob.card, prob.prob / total) for prob in self.probs])
+
+    def sort(self):
+        """Sort by card name"""
+        self.probs.sort(key=lambda prob: prob.card.name)
+
+    def sample(self, rng: random.Random) -> Card:
+        """Sample a card from this slot"""
+        weights = [prob.prob for prob in self.probs]
+        (prob,) = rng.choices(self.probs, weights=weights)
+        return prob.card
 
 
-def get_slot_probs_neo() -> tuple:
-    """Get a list of probabilities of cards for each slot
-    https://magic.wizards.com/en/articles/archive/feature/kamigawa-neon-dynasty-product-overview-2022-01-27
-    1 Rare or mythic rare card (mythic rare at 1 in 7.4, approximately)
-    1 Double-faced common or uncommon card
-    3 Uncommon cards
-    8 Common cards
-    1 Maybe foil (in 33% of Kamigawa: Neon Dynasty packs,
-        a traditional foil, single or double-sided, of any rarity replaces a common.)
-    1 Land card (ukiyo-e land, common dual land, or basic land)
+@dataclass
+class BoosterProbs:
+    """Singleton class to hold the booster pack probabilities"""
 
-    The return value is a MappingProxyType of card position to lists
-        each list is a pair of (probability, card)
-    """
-    slot_probs = []
-    cards = get_draft_cards("neo")
-    assert isinstance(cards, Cards), f"Expected Cards, got {type(cards)}"
-    # Rares and Mythic slot
-    # List the cards first
-    rares = cards.filt_rare()
-    mythics = cards.filt_mythic()
-    rares_and_mythics = rares + mythics
-    # Get the probabilities, and start by
-    mythic_prob = 1 / 7.4 / len(mythics)
-    rare_prob = (7.4 - 1) / 7.4 / len(rares)
-    probs = [rare_prob] * len(rares) + [mythic_prob] * len(mythics)
-    probs = np.array(probs) / np.sum(probs)
-    assert len(probs) == len(rares_and_mythics)
-    assert (
-        (1 / 8) < (mythic_prob * len(mythics)) < (1 / 7)
-    ), f"P: {mythic_prob * len(mythics)}"
-    slot_probs.append(list(zip(probs, rares_and_mythics)))
-    # Double-faced common or uncommon
-    common_uncommon = cards.filt_common() + cards.filt_uncommon()
-    dfc_common_uncommon = common_uncommon.filt_dfc()
-    probs = np.ones(len(dfc_common_uncommon)) / len(dfc_common_uncommon)
-    slot_probs.append(list(zip(probs, dfc_common_uncommon)))
-    # Uncommon Single Faced
-    uncommon_single_faced = cards.filt_not_dfc().filt_uncommon()
-    probs = np.ones(len(uncommon_single_faced)) / len(uncommon_single_faced)
-    for i in range(3):
-        slot_probs.append(list(zip(probs, uncommon_single_faced)))
-    # Common Single Faced
-    common_single_faced = cards.filt_not_dfc().filt_common().filt_not_land()
-    probs = np.ones(len(common_single_faced)) / len(common_single_faced)
-    for i in range(8):
-        slot_probs.append(list(zip(probs, common_single_faced)))
-    # Maybe foil
-    maybe_foil = cards + common_single_faced
-    foil_prob = 1 / 3 / len(cards)
-    common_prob = 2 / 3 / len(common_single_faced)
-    probs = [foil_prob] * len(cards) + [common_prob] * len(common_single_faced)
-    probs = np.array(probs) / np.sum(probs)
-    assert len(probs) == len(maybe_foil), f"{len(probs)} {len(maybe_foil)}"
-    # There's duplicates between the two lists, so we need to combine them
-    combined_cards = []
-    combined_probs = []
-    for i, card in enumerate(maybe_foil):
-        if card in combined_cards:
-            continue
-        combined_cards.append(card)
-        total_prob = 0.0
-        for j, prob in enumerate(probs):
-            if maybe_foil[j] == card:
-                total_prob += prob
-        combined_probs.append(total_prob)
-    assert len(combined_cards) == len(combined_probs)
-    combined_probs = np.array(combined_probs) / np.sum(combined_probs)
-    slot_probs.append(list(zip(combined_probs, combined_cards)))
-    # Land
-    common_lands = cards.filt_land().filt_common()
-    probs = np.ones(len(common_lands)) / len(common_lands)
-    slot_probs.append(list(zip(probs, common_lands)))
-    # Sort them by card name for easier debugging
-    for sp in slot_probs:
-        # check that probabilities sum to 1
-        probs = [p for p, c in sp]
-        assert np.isclose(np.sum(probs), 1.0), f"{np.sum(probs)}"
-        sp.sort(key=lambda x: x[1].name)
-    # Check we got all 15 slots
-    assert len(slot_probs) == 15, f"{len(slot_probs)}"
-    return proxy(slot_probs)
+    set_name: str  # 3-letter lowercase code for the set (e.g. "neo")
+    probs: List[SlotProb] = field(default_factory=list)
+
+    def __len__(self):
+        """Return the number of slots in a booster"""
+        return len(self.probs)
+
+    def __iter__(self):
+        """Return an iterator over all of the slots"""
+        return iter(self.probs)
+
+    def sort(self):
+        """Sort all of the slots by card name"""
+        for prob in self.probs:
+            prob.sort()
 
 
-def get_booster_cards(
-    set_name: str = "neo", rng: Optional[random.Random] = None
-) -> list:
-    """Get a booster of cards"""
-    slot_probs = get_booster_probs(set_name)
-    if rng is None:
-        rng = random
-    # Pick the cards
-    pack = []
-    for sp in slot_probs:
-        probs, cards = zip(*sp)
-        (choice,) = rng.choices(cards, probs, k=1)
-        pack.append(choice)
-    return Cards(pack)
+@dataclass
+class BoosterProbsCache:
+    """Singleton container for booser probabilities"""
+
+    sets: Dict[str, BoosterProbs] = field(default_factory=dict)
+
+    def get_booster_probs(self, set_name: str) -> BoosterProbs:
+        """Get the booster pack probs for this set."""
+        if set_name not in self.sets:
+            logging.debug("Computing booster probs for %s", set_name)
+            if set_name == "neo":
+                import mtg_cards.neo_booster
+
+                booster_probs = mtg_cards.neo_booster.get_booster_probs()
+            else:
+                raise ValueError(f"Unknown set {set_name}")
+            # Check we got all 15 slots
+            assert len(booster_probs) == 15, f"{len(booster_probs)}"
+            # Sort them by card name for easier debugging
+            booster_probs.sort()
+            # Add to cache
+            self.sets[set_name] = booster_probs
+        return self.sets[set_name]
+
+
+booster_probs_cache = BoosterProbsCache()
+get_booster_probs = booster_probs_cache.get_booster_probs
+
+
+@dataclass
+class BoosterBox:
+    """A booster pack factory"""
+
+    set_name: str  # 3-letter lowercase code for the set (e.g. "neo")
+    rng: Optional[random.Random] = None
+
+    def __post_init__(self):
+        if self.rng is None:
+            self.rng = random.Random()
+        self.booster_probs = get_booster_probs(self.set_name)
+
+    def get_booster(self) -> Cards:
+        """Return a booster pack"""
+        # Pick the cards
+        cards = []
+        for slot_probs in self.booster_probs:
+            cards.append(slot_probs.sample(rng=self.rng))
+        return Cards(cards)
 
 
 if __name__ == "__main__":
-    rng = random.Random(0)
-    pack = get_booster(rng=rng)
-    print(pack)
-    print(pack.pick(0))
+    # set to debug level
+    logging.basicConfig(level=logging.DEBUG)
+    # Render a booster pack
+    for i in range(10):
+        box = BoosterBox("neo", rng=random.Random(i))
+        box.get_booster().render(rowsize=15)
