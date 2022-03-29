@@ -4,168 +4,99 @@ import gzip
 import json
 import logging
 import os
+from dataclasses import dataclass, field
 from types import MappingProxyType, NoneType
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
 
-from mtg_cards.card import Card, Cards
-
-BASE_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../data"))
-CACHE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../cache"))
-
-bulk_metadata = MappingProxyType({})
-bulk_data = MappingProxyType({})
-draft_cards = MappingProxyType({})
+from mtg_cards import DATA_DIR
+from mtg_cards.util import proxy
 
 
-def proxy(data):
-    """Get a read-only proxy for a mapping"""
-    if isinstance(data, MappingProxyType):
-        return data
-    if isinstance(data, dict):
-        return MappingProxyType({k: proxy(v) for k, v in data.items()})
-    if isinstance(data, list):
-        return tuple([proxy(item) for item in data])
-    if isinstance(data, (str, int, float, tuple, NoneType)):
-        return data
-    raise TypeError(f"Unsupported type: {type(data)}")
+@dataclass
+class ScryfallCache:
+    """Singleton class for scryfall data cached locally (compressed)."""
 
+    bulk_metadata: Optional[MappingProxyType] = None
+    bulk_data: Dict[str, MappingProxyType] = field(default_factory=dict)
 
-def unproxy(data):
-    """Invert the proxy(), used to save data to JSON files"""
-    if isinstance(data, MappingProxyType):
-        return {k: unproxy(v) for k, v in data.items()}
-    if isinstance(data, (tuple, list)):
-        return [unproxy(item) for item in data]
-    if isinstance(data, (str, int, float, NoneType)):
-        return data
-    raise TypeError(f"Unsupported type: {type(data)}")
+    def url_to_path(self, url: str) -> str:
+        """Get the local path for a scryfall URL, if it were cached"""
+        u = urlparse(url)
+        assert u.scheme == "https", f"Expected https url, got {url}"
+        assert u.netloc.endswith("scryfall.com"), f"Expected scryfall.com, got {url}"
+        assert u.path.startswith("/file/"), f"Expected scryfall file, got {url}"
+        return os.path.join(DATA_DIR, u.path[1:])  # remove leading /
 
+    def url_to_compressed_path(self, url: str) -> str:
+        """Get the local path for a scryfall URL, if it were cached compressed"""
+        return self.url_to_path(url) + ".gz"
 
-def proxy_json_file(filename: str) -> MappingProxyType:
-    """Get a read-only copy of a JSON file"""
-    assert filename.endswith(".json"), f"Expected JSON file, got {filename}"
-    with open(filename, "r") as f:
-        return proxy(json.load(f))
-
-
-def get_bulk_metadata() -> MappingProxyType:
-    """Get the metadata for bulk data downloads from Scryfall"""
-    # More info: https://scryfall.com/docs/api/bulk-data
-    global bulk_metadata
-    if not len(bulk_metadata):
-        bulk_metdata_path = os.path.join(CACHE_DIR, "bulk_metadata.json")
-        url = "https://api.scryfall.com/bulk-data"
-        try:
-            r = requests.get(url)
-            r.raise_for_status()
-            metadata = {d["name"]: d for d in r.json()["data"]}
-            if not os.path.exists(bulk_metdata_path):
-                logging.debug("Caching bulk metadata from scryfall")
-            with open(bulk_metdata_path, "w") as f:
-                json.dump(metadata, f, indent=2)
-        except Exception as e:
-            logging.debug(f"Got exception downloading metadata: {e}")
-            logging.debug("loading from cached file")
-            with open(bulk_metdata_path, "r") as f:
-                metadata = json.load(f)
-        bulk_metadata = MappingProxyType(metadata)
-    return bulk_metadata
-
-
-def get_bulk_data() -> MappingProxyType:
-    """Get all bulk data from Scryfall"""
-    global bulk_data
-    if not len(bulk_data):
-        for bulk_type in get_bulk_metadata():
-            get_bulk_data_type(bulk_type)
-    return bulk_data
-
-
-def get_bulk_data_type(bulk_type: str) -> MappingProxyType:
-    """Get Bulk Data from Scryfall"""
-    global bulk_data
-    # Check if we already have it loaded
-    if bulk_type not in bulk_data:
-        # If not load it
-        metadata = get_bulk_metadata()
-        bulk_obj = metadata[bulk_type]
-        bulk_uri = bulk_obj["download_uri"]
-        bulk_path = download_cache_file(bulk_uri)
-        bulk_data_type = proxy_json_file(bulk_path)
-        bulk_data = MappingProxyType(bulk_data | {bulk_type: bulk_data_type})
-    return bulk_data[bulk_type]
-
-
-def download_cache_file(uri: str) -> str:
-    """Download or get a cached version of a file, return local path"""
-    u = urlparse(uri)
-    assert u.scheme == "https", f"Expected https uri, got {uri}"
-    assert u.netloc.endswith("scryfall.com"), f"Expected scryfall.com, got {uri}"
-    assert u.path.startswith("/file/"), f"Expected scryfall file, got {uri}"
-    local_path = os.path.join(DATA_DIR, u.path[1:])  # remove leading /
-    if not os.path.exists(local_path):
+    def download_scryfall_file(self, url: str) -> str:
+        """Download and cache a scryfall file, uncompressed"""
+        path = self.url_to_path(url)
         # Download from scryfall
-        logging.debug(f"Downloading {uri}")
-        r = requests.get(uri)
+        logging.debug(f"Downloading {url} to {path}")
+        r = requests.get(url)
         r.raise_for_status()
         # Make sure the directory exists
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         # Save the file
-        with open(local_path, "wb") as f:
+        with open(path, "wb") as f:
             f.write(r.content)
-        logging.debug(f"Saved {local_path}")
-    return local_path
+        return path
+
+    def download_scryfall_json(self, url: str) -> str:
+        """Download and cache a JSON file from Scryfall, returning local path"""
+        path = self.url_to_compressed_path(url)
+        logging.debug(f"Compressing {url} to {path}")
+        r = requests.get(url)
+        r.raise_for_status()
+        # Make sure the directory exists
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        # Save the file compressed
+        with gzip.open(path, "wt", encoding="UTF-8") as f:
+            json.dump(r.json(), f)
+        return path
+
+    def get_scryfall_json(self, url: str) -> MappingProxyType:
+        """Get a scryfall json url loaded as a MappingProxyType"""
+        path = self.url_to_compressed_path(url)
+        if not os.path.exists(path):
+            path = self.download_scryfall_json(url)
+        with gzip.open(path, "rt", encoding="UTF-8") as f:
+            return proxy(json.load(f))
+
+    def get_bulk_metadata(self) -> MappingProxyType:
+        """Get the metadata for bulk data downloads from Scryfall"""
+        return self.get_scryfall_json("https://api.scryfall.com/bulk-data")
+
+    def get_bulk_data(self, data_type: str) -> MappingProxyType:
+        """Get bulk data of the given type from scryfall"""
+        metadata = self.get_bulk_metadata()
+        for data in metadata["data"]:
+            if data["type"] == data_type:
+                return self.get_scryfall_json(data["download_uri"])
+        raise ValueError(f"No bulk data of type {data_type} in {metadata}")
+
+    def get_all_bulk_data(self) -> None:
+        """Download all of the bulk data to save it to cache"""
+        metadata = self.get_bulk_metadata()
+        for data in metadata["data"]:
+            self.get_bulk_data(data["type"])
 
 
-def get_draft_cards(set_name: str = "neo", cache=True) -> MappingProxyType:
-    """Get all cards in a set, usually load from cached JSON file"""
-    global draft_cards
-    set_name = set_name.lower()
-    if set_name not in draft_cards:
-        cache_file = os.path.join(CACHE_DIR, f"{set_name}.jsonl.gz")
-        if cache and os.path.exists(cache_file):
-            with gzip.open(cache_file, "rt", encoding="UTF-8") as f:
-                cards = [json.loads(line) for line in f]
-                cards = proxy(cards)
-        else:
-            default_cards = get_bulk_data_type("Default Cards")
-            # Filter to cards in this set
-            cards = filter(lambda c: c["set"] == set_name, default_cards)
-            # Filter to just cards in draft boosters
-            cards = filter(lambda c: c["booster"], cards)
-            # Sort by 'collector_number'
-            cards = sorted(cards, key=lambda c: int(c["collector_number"]))
-            # Save cache file
-            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-            with gzip.open(cache_file, "wt", encoding="UTF-8") as f:
-                for card in cards:
-                    f.write(json.dumps(unproxy(card)) + "\n")
-        # Convert cards to card type, and cards to a tuple (immutable)
-        cards = tuple(Card.from_scryfall(card) for card in cards)
-        draft_cards = MappingProxyType(draft_cards | {set_name: cards})
-    # Ensure we got the set
-    assert set_name in draft_cards, f"No cards found for {set_name}"
-    # Ensure there are cards in the set
-    assert len(draft_cards[set_name]), f"No cards found for {set_name}"
-    # Ensure this is an immutable type
-    assert isinstance(draft_cards[set_name], tuple), f"{type(draft_cards[set_name])}"
-    # Return a mutable container
-    return Cards(list(draft_cards[set_name]))
+# Singleton instance for the cache of scryfall data
+scryfall_cache = ScryfallCache()
 
-
-def get_card_image(card: MappingProxyType, fmt: str = "png") -> str:
-    """Get the image for a card"""
-    # Handle double-faced cards
-    if "card_faces" in card:
-        card = card["card_faces"][0]  # Just get the front image
-    assert "image_uris" in card, f"{card.keys()}"
-    assert fmt in card["image_uris"], f"{card['image_uris'].keys()}"
-    image_uri = card["image_uris"][fmt]
-    return download_cache_file(image_uri)
+# Copy some singleton methods into module namespace
+get_bulk_metadata = scryfall_cache.get_bulk_metadata
+get_bulk_data = scryfall_cache.get_bulk_data
+get_all_bulk_data = scryfall_cache.get_all_bulk_data
 
 
 if __name__ == "__main__":
-    print(get_draft_cards())  # Download data for draft cards
+    logging.basicConfig(level=logging.DEBUG)
+    get_all_bulk_data()

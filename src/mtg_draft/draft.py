@@ -7,7 +7,7 @@ from optparse import Option
 from typing import List, Optional
 
 from mtg_cards.booster import get_booster
-from mtg_cards.card import Card, Cards
+from mtg_cards.cards import Card, Cards
 
 
 @dataclass

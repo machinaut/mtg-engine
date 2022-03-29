@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 
-from mtg_cards.card import Card, Cards
+from mtg_cards.cards import Card, Cards
 from mtg_cards.scryfall import get_draft_cards, proxy
 
 # Use this to cache computing the booster probabilities
