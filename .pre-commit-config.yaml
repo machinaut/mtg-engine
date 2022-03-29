@@ -16,7 +16,16 @@ repos:
     rev: 22.1.0
     hooks:
     -   id: black
-# -   repo: https://github.com/PyCQA/pylint
-#     rev: v2.13.2
-#     hooks:
-#     -   id: pylint
+# https://pylint.pycqa.org/en/latest/user_guide/pre-commit-integration.html
+-   repo: local
+    hooks:
+    -   id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+            [
+                "--rcfile=pylintrc", # Link to your config file
+                "--errors-only", # Add this option just to pre-commit
+            ]
