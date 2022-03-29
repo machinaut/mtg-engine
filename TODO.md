@@ -1,10 +1,9 @@
 # TODO - tracking
 
 ## Magic relevant things
-* Scryfall singleton and cache
-* get_bulk_data_type -> get_bulk_data
-* get_bulk_data returns Cards data type
 * Deck building interface
+* Save/load decks to files
+* DraftRunner makes LimitedDecks for agents
 
 ## Software development things
 * Debug the pylint pre-commit env issue
