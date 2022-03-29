@@ -37,6 +37,8 @@ def test_deterministic():
         draft1 = fixed_draft(seed=seed)
         draft2 = fixed_draft(seed=seed)
         assert draft1.players == draft2.players
+        for i in range(draft1.num_players):
+            assert draft1.players[i].cards == draft2.players[i].cards
         draft3 = fixed_draft(seed=seed + 1)
         assert draft1.players != draft3.players
         draft4 = random_draft(draft_seed=seed, pick_seed=seed + 2)
@@ -82,3 +84,20 @@ def test_runner():
             rng = random.Random(seed)
             runner = DraftRunner.make(num_players=num_players, set_name="neo", rng=rng)
             runner.run()
+
+
+def test_deterministic_runner():
+    """Test running drafts with random agents"""
+    for num_players in range(2, 9):
+        for seed in range(10):
+            rng = random.Random(seed)
+            runner = DraftRunner.make(num_players=num_players, set_name="neo", rng=rng)
+            runner.run()
+            rng2 = random.Random(seed)
+            runner2 = DraftRunner.make(
+                num_players=num_players, set_name="neo", rng=rng2
+            )
+            runner2.run()
+            assert runner.draft.players == runner2.draft.players
+            for p, p2 in zip(runner.draft.players, runner2.draft.players):
+                assert p.cards == p2.cards

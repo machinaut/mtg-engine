@@ -150,7 +150,7 @@ class RandomDraftAgent(DraftAgent):
         """Pick a random card"""
         assert self.player is not None, f"{self}"
         assert len(self.player.pack) > 0
-        return random.randint(0, len(self.player.pack) - 1)
+        return self.rng.randint(0, len(self.player.pack) - 1)
 
 
 @dataclass
@@ -218,8 +218,12 @@ class DraftRunner:
     def run(self) -> None:
         """Run the draft"""
         while not self.draft.done:
-            print("Turn:", self.draft.turn)
-            print("Pack:", self.draft.current_pack, "Pick:", self.draft.current_pick)
+            logging.debug(
+                "Draft Turn: %s Pack: %s Pick: %s",
+                self.draft.turn,
+                self.draft.current_pack,
+                self.draft.current_pick,
+            )
             for i, agent in enumerate(self.agents):
                 self.draft.pick(i, agent.pick())
 
