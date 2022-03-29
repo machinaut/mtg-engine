@@ -1,7 +1,6 @@
 # TODO - tracking
 
 ## Magic relevant things
-* Deck building interface
 * Save/load decks to files
 * DraftRunner makes LimitedDecks for agents
 
