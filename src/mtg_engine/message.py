@@ -25,6 +25,13 @@ class View(Message):
 
 
 @dataclass
+class Views(Message):
+    """Class containing multiple views, one for each player"""
+
+    views: List[View]
+
+
+@dataclass
 class Description:
     """Description is the description of a choice to be made,
     but does not contain any options."""
