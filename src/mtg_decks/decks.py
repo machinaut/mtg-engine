@@ -117,10 +117,11 @@ class DeckAgent:
         """Return true if the deck is complete"""
         raise NotImplementedError
 
-    def run(self) -> bool:
+    def run(self) -> Deck:
         """Run the deck-building agent"""
         while not self.done():
             self.act()
+        return self.deck
 
 
 @dataclass

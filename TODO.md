@@ -3,6 +3,7 @@
 ## Magic relevant things
 * Save/load decks to files
 * DraftRunner makes LimitedDecks for agents
+* Game support for matches (best of 3)
 
 ## Software development things
 * Debug the pylint pre-commit env issue

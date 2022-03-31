@@ -37,6 +37,6 @@ This simulates a game.  This will be the hardest to build, probably.
 
 ## Resources
 
-[Scryfall](https://scryfall.com/sets/neo)
-[Hyperlinked MtG Rules](https://yawgatog.com/resources/magic-rules/)
-[The Collation Project](https://www.lethe.xyz/mtg/collation/index.html)
+* [Scryfall](https://scryfall.com/sets/neo)
+* [Hyperlinked MtG Rules](https://yawgatog.com/resources/magic-rules/)
+* [The Collation Project](https://www.lethe.xyz/mtg/collation/index.html)

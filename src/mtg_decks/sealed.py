@@ -11,7 +11,7 @@ from typing import Optional
 
 from mtg_cards.booster import BoosterBox
 from mtg_cards.cards import Cards
-from mtg_decks.decks import LimitedDeck
+from mtg_decks.decks import LimitedDeck, RandomDeckAgent
 
 
 @dataclass
@@ -34,6 +34,14 @@ class Sealed(LimitedDeck):
         packs = [box.get_booster() for _ in range(6)]
         pool = sum(packs, Cards())  # Concatenate
         return cls(set_name=set_name, pool=pool)
+
+
+def random_sealed_deck(set_name: str = "neo", rng: Optional[random.Random] = None):
+    """Make a new random sealed deck using a random agent"""
+    sealed = Sealed.make(set_name, rng)
+    agent = RandomDeckAgent(sealed, rng)
+    agent.run()
+    return agent.deck
 
 
 if __name__ == "__main__":
