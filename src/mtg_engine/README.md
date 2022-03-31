@@ -55,6 +55,11 @@ When the game gets to a point when a player must make a decision.
 It contains a brief description of the choice that must be made,
 and also contains all of the options enumerated.
 
+The choice is discrete and exactly one option must be chosen.
+
+* **Description:** - the description of the choice to be made.
+* **Option** - one of the available options in a choice.
+
 ```
 Choice: Choose a card to put into your graveyard.
 A. B. C.  .... (Cards in hand)
@@ -75,4 +80,4 @@ then the engine should just send a view
 A decision is a response from a player to a choice sent to them.
 It is private to just the player and the engine.
 
-The decision selects one of the enumerated options from the chioces.
+The decision selects exactly one of the enumerated options from the chioces.
