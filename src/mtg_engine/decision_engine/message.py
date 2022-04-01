@@ -40,7 +40,7 @@ class Views(Message):
 class Option:
     """Option class is a distinct choice in a Choice class."""
 
-    pass
+    desc: str
 
 
 @dataclass
@@ -83,4 +83,4 @@ class MessageBundle:
 
     views: List[Views] = field(default_factory=list)
     choice: Optional[Choice] = None
-    choice_player: Optional[int] = None  # Which player the choice goes to
+    player: Optional[int] = None  # Which player the choice goes to

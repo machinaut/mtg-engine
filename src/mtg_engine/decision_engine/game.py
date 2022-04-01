@@ -19,7 +19,7 @@ from mtg_engine.decision_engine.message import MessageBundle, Views
 from mtg_engine.decision_engine.player import Player
 
 # This is our typevar for the nested coroutines we use.
-GameGenerator = Generator[MessageBundle, int, None]
+GameGenerator = Generator[MessageBundle, int, int]
 
 
 @dataclass
@@ -32,6 +32,10 @@ class Game:
     def num_players(self) -> int:
         """Number of players in the game"""
         return len(self.players)
+
+    def is_valid_player(self, player: int) -> bool:
+        """Is this a valid player number"""
+        return isinstance(player, int) and (0 <= player < self.num_players)
 
     def play(self) -> GameGenerator:
         """Core coroutine in the game engine.
