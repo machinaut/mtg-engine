@@ -21,7 +21,6 @@ from typing import Iterator, List, Union
 import imgcat
 import PIL
 from IPython.display import Image, display
-
 from mtg_cards.scryfall import cache_scryfall_file
 from mtg_cards.util import isnotebook
 

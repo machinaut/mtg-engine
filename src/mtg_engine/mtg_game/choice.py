@@ -9,6 +9,7 @@ This module is for specific choices that can be made.
 from dataclasses import dataclass, field
 
 from mtg_cards.cards import Cards
+
 from mtg_engine.message import Choice, Option
 
 

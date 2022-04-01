@@ -5,12 +5,17 @@ Python Engine for Magic: the Gathering
 
 **NOTA BENE:** Only supports a single set for now: [NEO (Kamigawa: Neon Dynasty)](https://scryfall.com/sets/neo).
 
-## Packages
+## Sub-Modules
+
+### `decision_engine` - Rules engine for playing games
+
+This is an abstract game engine, where there is a core game engine which sends messages to and from players.
+
+The messages are views (updates to the state of the board), or choices (actions players must take), or decisions (chosen options).
 
 ### `mtg_cards` - Card data and card utilities
 
-This is the foundational package, in that all the other packages depend on it.
-
+This is the foundational data package.
 It includes utilities for downloading data and images from Scryfall, and caching them.
 
 It heavily uses an internal method `proxy()` to make read-only versions of data.

@@ -13,6 +13,7 @@ from random import Random
 from typing import List, Optional
 
 from mtg_decks.decks import Deck
+
 from mtg_engine.message import Choice, Decision, Message, View
 
 

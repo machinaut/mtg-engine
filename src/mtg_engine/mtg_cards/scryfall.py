@@ -20,7 +20,6 @@ from typing import Dict, Optional
 from urllib.parse import urlparse
 
 import requests
-
 from mtg_cards import DATA_DIR
 from mtg_cards.util import proxy
 
