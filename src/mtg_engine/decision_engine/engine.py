@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-`mtg_engine.engine` - Engine class and utilities
+Decision Engine class and utilities
 
 The Engine class holds the core game state,
 and sends/receives messages to/from players.
