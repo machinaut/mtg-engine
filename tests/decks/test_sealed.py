@@ -3,7 +3,6 @@
 import random
 
 import pytest
-
 from mtg_decks.sealed import Sealed
 
 

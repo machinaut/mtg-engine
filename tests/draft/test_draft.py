@@ -2,7 +2,6 @@
 import random
 
 import pytest
-
 from mtg_draft.draft import Draft, DraftRunner
 
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import pytest
-
 from mtg_cards.cards import Cards
 from mtg_cards.sets import get_set
 
