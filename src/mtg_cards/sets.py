@@ -44,9 +44,9 @@ class Set:
             # Get the "Default Cards" bulk data from scryfall (probably cached)
             default_cards = get_bulk_data("default_cards")
             # Filter to cards in this set
-            cards = filter(lambda c: c["set"] == set_name, default_cards)
+            cards = list(filter(lambda c: c["set"] == set_name, default_cards))
             # Filter to just cards in draft boosters
-            cards = filter(lambda c: c["booster"], cards)
+            cards = list(filter(lambda c: c["booster"], cards))
             # Sort by 'collector_number'
             cards = sorted(cards, key=lambda c: int(c["collector_number"]))
             # Save cache file
@@ -56,10 +56,10 @@ class Set:
         # Load from the cache file, ensuring it's integrity
         logging.debug("Loading cache file %s", cache_file)
         with gzip.open(cache_file, "rt", encoding="UTF-8") as file:
-            cards = Cards([Card.from_json(proxy(c)) for c in json.load(file)])
+            set_cards = Cards([Card.from_json(proxy(c)) for c in json.load(file)])
         # Create a Set object
-        basics = cards.filt_basic()
-        return cls(set_name, cards, basics)
+        basics = set_cards.filt_basic()
+        return cls(set_name, set_cards, basics)
 
     def render(self):
         """Render the cards in a set"""

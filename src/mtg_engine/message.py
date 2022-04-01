@@ -30,13 +30,18 @@ class Views(Message):
 
     views: List[View]
 
+    def append(self, view):
+        """Append a view to the list"""
+        assert isinstance(view, View)
+        self.views.append(view)
 
-@dataclass
-class Description:
-    """Description is the description of a choice to be made,
-    but does not contain any options."""
 
-    pass
+# @dataclass
+# class Description:
+#     """Description is the description of a choice to be made,
+#     but does not contain any options."""
+
+#     pass
 
 
 @dataclass
@@ -57,8 +62,11 @@ class Choice(Message):
     All options must be distinct, and non-distinct options are combined/ignored.
     """
 
-    desc: Description
+    desc: str
     options: List[Option]
+
+    def __len__(self) -> int:
+        return len(self.options)
 
 
 @dataclass
@@ -69,3 +77,14 @@ class Decision(Message):
     """
 
     option: int
+
+
+@dataclass
+class MessageBundle:
+    """MessageBundle class is a bunch of Views followed by a single Choice,
+    which is how the Game class stacks messages.
+    """
+
+    choice: Choice
+    choice_player: int  # Which player the choice goes to
+    views: List[Views] = field(default_factory=list)

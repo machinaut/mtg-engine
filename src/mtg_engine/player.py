@@ -8,10 +8,11 @@ but will also send some in response.
 The player keeps a record of all messages in a history,
 which can be used as sequential context for AI.
 """
-import random
 from dataclasses import dataclass, field
+from random import Random
 from typing import List, Optional
 
+from mtg_decks.decks import Deck
 from mtg_engine.message import Choice, Decision, Message, View
 
 
@@ -23,15 +24,11 @@ class Player:
     The Player instance is held by the engine, so the engine will call methods
     on it in order to send / receive messages.
 
-    The base Player class acts as a Random AI.
+    The Player class needs to be subclassed to implement the actual logic.
     """
 
+    deck: Deck  # Starting deck
     history: List[Message] = field(default_factory=list)
-    rng: Optional[random.Random] = field(default=None, repr=False)
-
-    def __post_init__(self):
-        if self.rng is None:
-            self.rng = random.Random()
 
     def view(self, view) -> None:
         """Send a View message to the engine"""
@@ -55,8 +52,23 @@ class Player:
         return decision
 
     def decide(self, choice) -> Decision:
-        """Override in subclasses.  Make a random decision"""
+        """Override in subclasses.  Make a decision"""
+        raise NotImplementedError
+
+
+@dataclass
+class RandomPlayer(Player):
+    rng: Random = field(default_factory=Random, repr=False)
+
+    @classmethod
+    def make(cls, deck: Deck, rng: Optional[Random] = None) -> "RandomPlayer":
+        """Make a new random player, with the given deck"""
+        if rng is None:
+            rng = Random()
+        return cls(deck, rng=rng)
+
+    def decide(self, choice) -> Decision:
+        """Make a random decision"""
         assert isinstance(choice, Choice)
-        # Choose randomly
         option = self.rng.randint(0, len(choice.options) - 1)
         return Decision(option)

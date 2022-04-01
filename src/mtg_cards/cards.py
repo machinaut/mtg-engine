@@ -16,7 +16,7 @@ both in jupyter and in a terminal.
 # %%
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import List
+from typing import Iterator, List, Union
 
 import imgcat
 import PIL
@@ -126,15 +126,15 @@ class Cards:
 
     cards: List[Card] = field(default_factory=list)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Card]:
         """Iterate over the cards"""
         return iter(self.cards)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Get the number of cards in the list"""
         return len(self.cards)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Union[Card, "Cards"]:
         """Get a card or a subset of cards by index"""
         cards = self.cards[key]
         if isinstance(key, slice):
@@ -143,13 +143,13 @@ class Cards:
             return cards  # technically a single card
         raise IndexError(f"Cards.__getitem__({key})")
 
-    def __add__(self, other):
+    def __add__(self, other) -> "Cards":
         """Add two Cards objects together (concatenate)"""
         if isinstance(other, Cards):
             return self.__class__(self.cards + other.cards)
         raise TypeError(f"Cannot add {type(other)} to {type(self)}")
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> "Cards":
         """Return a copy of these cards, but without the other cards"""
         assert isinstance(other, Cards), f"{other}"
         other = other.sorted_copy()
@@ -162,63 +162,63 @@ class Cards:
         assert len(other) == 0, f"Subtract leftover {other}"
         return self.__class__(result)
 
-    def __contains__(self, card):
+    def __contains__(self, card) -> bool:
         """Is a given card in this set of cards"""
         assert isinstance(card, Card), f"{card}"
         return card in self.cards
 
-    def append(self, card):
+    def append(self, card) -> None:
         """Add a card to the pack"""
         assert isinstance(card, Card), f"{card}"
         self.cards.append(card)
 
-    def remove(self, card):
+    def remove(self, card) -> None:
         """Remove a card from the pack"""
         assert isinstance(card, Card), f"{card}"
         self.cards.remove(card)
 
-    def count(self, card):
+    def count(self, card) -> int:
         """Get the number of times a card appears"""
         assert isinstance(card, Card), f"{card}"
         return self.cards.count(card)
 
-    def filt_dfc(self):
+    def filt_dfc(self) -> "Cards":
         """Filter to just cards that are double-faced"""
         return self.__class__(list(filter(lambda c: c.dfc, self.cards)))
 
-    def filt_not_dfc(self):
+    def filt_not_dfc(self) -> "Cards":
         """Filter to just cards that are not double-faced"""
         return self.__class__(list(filter(lambda c: not c.dfc, self.cards)))
 
-    def filt_rarity(self, rarity):
+    def filt_rarity(self, rarity) -> "Cards":
         """Filter to just cards of a certain rarity"""
         return self.__class__(list(filter(lambda c: c.rarity == rarity, self.cards)))
 
-    def filt_common(self):
+    def filt_common(self) -> "Cards":
         """Filter to just cards that are common"""
         return self.filt_rarity("common")
 
-    def filt_uncommon(self):
+    def filt_uncommon(self) -> "Cards":
         """Filter to just cards that are uncommon"""
         return self.filt_rarity("uncommon")
 
-    def filt_rare(self):
+    def filt_rare(self) -> "Cards":
         """Filter to just cards that are rare"""
         return self.filt_rarity("rare")
 
-    def filt_mythic(self):
+    def filt_mythic(self) -> "Cards":
         """Filter to just cards that are mythic rare"""
         return self.filt_rarity("mythic")
 
-    def filt_land(self):
+    def filt_land(self) -> "Cards":
         """Filter to just cards that are a land"""
         return self.__class__(list(filter(lambda c: c.land, self.cards)))
 
-    def filt_not_land(self):
+    def filt_not_land(self) -> "Cards":
         """Filter to just cards that are not a land"""
         return self.__class__(list(filter(lambda c: not c.land, self.cards)))
 
-    def filt_basic(self):
+    def filt_basic(self) -> "Cards":
         """Filter to just cards that are a basic land"""
         return self.__class__(list(filter(lambda c: c.basic, self.cards)))
 

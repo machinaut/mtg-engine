@@ -30,3 +30,7 @@ class Engine:
 
     def run(self):
         """Run the engine, until the game is finished"""
+
+        while not self.game.done:
+            message = self.game.next_message()
+            self.play_turn()

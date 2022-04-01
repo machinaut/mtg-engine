@@ -107,7 +107,7 @@ class LimitedDeck(Deck):
 class DeckAgent:
     """Interface for a deck-building agent"""
 
-    deck: Optional[Deck] = None
+    deck: Deck
 
     def act(self):
         """Choose to pick or unpick a card"""
