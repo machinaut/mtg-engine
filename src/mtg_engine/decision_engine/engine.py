@@ -7,10 +7,7 @@ and sends/receives messages to/from players.
 """
 import logging
 from dataclasses import dataclass
-from multiprocessing.sharedctypes import Value
 from typing import Generator, List
-
-from numpy import isin
 
 from mtg_engine.decision_engine.message import Choice, Decision, View, Views
 from mtg_engine.decision_engine.player import Player
