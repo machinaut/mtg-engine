@@ -52,7 +52,7 @@ class Engine:
         # Send the choice to the correct player
         choice = message_bundle.choice
         assert isinstance(choice, int), f"{choice}"
-        decision = self.players[message_bundle.choice_player].choice(choice)
+        decision = self.players[message_bundle.player].choice(choice)
         assert isinstance(decision, Decision), f"{decision}"
         # return the chosen option
         return decision.option

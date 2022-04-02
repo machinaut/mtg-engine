@@ -63,7 +63,7 @@ class Engine:
                 player.view(view)  # Send the view to the player
         # If the choice is not None, then send
         if message_bundle.choice is not None:
-            choice_player = message_bundle.choice_player
+            choice_player = message_bundle.player
             assert self.is_valid_player(choice_player), f"{choice_player}"
             # Send the choice to the correct player
             choice = message_bundle.choice
