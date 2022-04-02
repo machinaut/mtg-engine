@@ -7,17 +7,16 @@ and sends/receives messages to/from players.
 """
 import logging
 from dataclasses import dataclass
-from typing import List
+from multiprocessing.sharedctypes import Value
+from typing import Generator, List
 
-from mtg_engine.decision_engine.game import Game
-from mtg_engine.decision_engine.message import (
-    Choice,
-    Decision,
-    MessageBundle,
-    View,
-    Views,
-)
+from numpy import isin
+
+from mtg_engine.decision_engine.message import Choice, Decision, View, Views
 from mtg_engine.decision_engine.player import Player
+
+# This is our typevar for the nested coroutines we use.
+MessageGen = Generator[Views | Choice, Decision | None, Decision | None]
 
 
 @dataclass
@@ -27,8 +26,30 @@ class Engine:
     and sends/receives messages to/from players.
     """
 
-    game: Game
     players: List[Player]
+
+    @property
+    def num_players(self) -> int:
+        """Number of players in the game"""
+        return len(self.players)
+
+    def is_valid_player(self, player: int) -> bool:
+        """Is this a valid player number"""
+        return isinstance(player, int) and (0 <= player < self.num_players)
+
+    def is_valid_views(self, views: Views) -> bool:
+        """Check if the views are valid"""
+        return isinstance(views, Views) and (len(views) == self.num_players)
+
+    def is_valid_choice(self, choice: Choice) -> bool:
+        """Check if the choice is valid"""
+        return isinstance(choice, Choice) and (choice.player in range(self.num_players))
+
+    def play(self) -> MessageGen:
+        """Core coroutine in the game engine.
+        Override this to implement your own game logic.
+        """
+        raise NotImplementedError
 
     def is_valid_player(self, player: int) -> bool:
         """Check if the player is valid"""
@@ -37,40 +58,32 @@ class Engine:
     def run(self):
         """Run the engine, until the game is finished"""
         logging.debug("Running engine: %s", self)
-        game_generator = self.game.play()
-        message_bundle = next(game_generator)
+        game_generator = self.play()
+        message = next(game_generator)
         while True:
-            option_int = self.send_receive(message_bundle)
+            reply = self.send_receive(message)
             try:
-                message_bundle = game_generator.send(option_int)
+                message = game_generator.send(reply)
             except StopIteration:
                 break
         logging.debug("Completed engine: %s", self)
 
-    def send_receive(self, message_bundle: MessageBundle) -> int:
-        """Send all the messages in a MessageBundle, and return
-        the chosen decision option.
-
-        If the MessageBundle did not contain a choice, return -1.
-        """
-        assert isinstance(message_bundle, MessageBundle), f"{message_bundle}"
-        # We might have a lot of views to send
-        for views in message_bundle.views:
-            assert isinstance(views, Views), f"{views}"
-            # For each views, which is a set of views to be sent to every player
+    def send_receive(self, message: Choice | Views) -> Decision | None:
+        """Send the given message, and return the reply if any"""
+        # If a choice, send it to the player, and return the result
+        if isinstance(message, Choice):
+            choice = message
+            assert self.is_valid_choice(choice), f"Invalid {choice}"
+            decision = self.players[choice.player].choice(choice)
+            assert choice.is_valid_decision(decision), f"Invalid {decision}"
+            return decision
+        # If a views, send it to all players, and return None
+        if isinstance(message, Views):
+            views = message
+            assert self.is_valid_views(views), f"Invalid {views}"
             for player, view in zip(self.players, views):
                 assert isinstance(view, View), f"{view}"
                 player.view(view)  # Send the view to the player
-        # If the choice is not None, then send
-        if message_bundle.choice is not None:
-            choice_player = message_bundle.player
-            assert self.is_valid_player(choice_player), f"{choice_player}"
-            # Send the choice to the correct player
-            choice = message_bundle.choice
-            assert isinstance(choice, Choice), f"{choice}"
-            decision = self.players[choice_player].choice(choice)
-            assert isinstance(decision, Decision), f"{decision}"
-            # return the chosen option
-            return decision.option
-        # If the choice is None, then we are done
-        return -1
+            return None
+        # If neither, raise an error
+        raise ValueError(f"{message} is not a Choice or Views")

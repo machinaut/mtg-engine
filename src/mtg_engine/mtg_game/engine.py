@@ -9,7 +9,6 @@ import logging
 from dataclasses import dataclass
 from typing import List
 
-from mtg_engine.decision_engine.game import Game
 from mtg_engine.decision_engine.message import Decision, MessageBundle, View, Views
 from mtg_engine.decision_engine.player import Player
 
@@ -21,7 +20,6 @@ class Engine:
     and sends/receives messages to/from players.
     """
 
-    game: Game
     players: List[Player]
 
     def run(self):

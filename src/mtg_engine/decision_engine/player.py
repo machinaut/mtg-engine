@@ -72,6 +72,11 @@ class RandomPlayer(Player):
 class HumanPlayer(Player):
     """Default player which prints out all options and reads input"""
 
+    def view(self, view) -> None:
+        """Print out the view"""
+        super().view(view)
+        print(view)
+
     def decide(self, choice) -> int:
         """Read input from the user"""
         assert isinstance(choice, Choice)
