@@ -10,9 +10,9 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
-from mtg_cards.booster_probs import BoosterProbs
-from mtg_cards.cards import Cards
-from mtg_cards.neo_booster import get_booster_probs as get_booster_probs_neo
+from mtg_engine.mtg_cards.booster_probs import BoosterProbs
+from mtg_engine.mtg_cards.cards import Cards
+from mtg_engine.mtg_cards.neo_booster import get_booster_probs as get_booster_probs_neo
 
 
 @dataclass

@@ -9,9 +9,10 @@ import random
 from dataclasses import dataclass
 from typing import Optional
 
-from mtg_cards.booster import BoosterBox
-from mtg_cards.cards import Cards
 from mtg_decks.decks import LimitedDeck, RandomDeckAgent
+
+from mtg_engine.mtg_cards.booster import BoosterBox
+from mtg_engine.mtg_cards.cards import Cards
 
 
 @dataclass

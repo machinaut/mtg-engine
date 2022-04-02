@@ -21,8 +21,9 @@ from typing import Iterator, List, Union
 import imgcat
 import PIL
 from IPython.display import Image, display
-from mtg_cards.scryfall import cache_scryfall_file
-from mtg_cards.util import isnotebook
+
+from mtg_engine.mtg_cards.scryfall import cache_scryfall_file
+from mtg_engine.mtg_cards.util import isnotebook
 
 
 @dataclass
@@ -288,5 +289,5 @@ class Cards:
 
 
 # if __name__ == '__main__':
-#     from mtg_cards.sets import get_set
+#     from mtg_engine.mtg_cards.sets import get_set
 #     get_set('neo').render()

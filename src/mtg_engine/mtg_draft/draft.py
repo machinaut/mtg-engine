@@ -8,8 +8,8 @@ import random
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from mtg_cards.booster import BoosterBox
-from mtg_cards.cards import Card, Cards
+from mtg_engine.mtg_cards.booster import BoosterBox
+from mtg_engine.mtg_cards.cards import Card, Cards
 
 
 @dataclass

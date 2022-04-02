@@ -9,8 +9,8 @@ import random
 from dataclasses import dataclass, field
 from typing import Optional
 
-from mtg_cards.cards import Cards
-from mtg_cards.sets import get_set
+from mtg_engine.mtg_cards.cards import Cards
+from mtg_engine.mtg_cards.sets import get_set
 
 
 @dataclass

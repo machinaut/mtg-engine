@@ -8,9 +8,8 @@ This module is for specific views that provide specific information.
 """
 from dataclasses import dataclass, field
 
-from mtg_cards.cards import Cards
-
 from mtg_engine.message import View
+from mtg_engine.mtg_cards.cards import Cards
 
 
 @dataclass

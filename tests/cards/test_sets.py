@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import pytest
-from mtg_cards.cards import Cards
-from mtg_cards.sets import get_set
+
+from mtg_engine.mtg_cards.cards import Cards
+from mtg_engine.mtg_cards.sets import get_set
 
 
 def test_set_is_cards():

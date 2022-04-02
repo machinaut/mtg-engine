@@ -10,7 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import List
 
-from mtg_cards.cards import Card, Cards
+from mtg_engine.mtg_cards.cards import Card, Cards
 
 
 @dataclass

@@ -15,10 +15,10 @@ import os
 from dataclasses import dataclass, field
 from typing import Dict
 
-from mtg_cards import CACHE_DIR
-from mtg_cards.cards import Card, Cards
-from mtg_cards.scryfall import get_bulk_data
-from mtg_cards.util import proxy, unproxy
+from mtg_engine.mtg_cards import CACHE_DIR
+from mtg_engine.mtg_cards.cards import Card, Cards
+from mtg_engine.mtg_cards.scryfall import get_bulk_data
+from mtg_engine.mtg_cards.util import proxy, unproxy
 
 
 @dataclass

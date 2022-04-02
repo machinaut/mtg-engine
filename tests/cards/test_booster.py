@@ -2,8 +2,9 @@
 import random
 
 import pytest
-from mtg_cards.booster import BoosterBox
-from mtg_cards.sets import get_set
+
+from mtg_engine.mtg_cards.booster import BoosterBox
+from mtg_engine.mtg_cards.sets import get_set
 
 
 def test_duplicates():

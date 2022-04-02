@@ -16,8 +16,9 @@ NEO Draft Boosters Contain:
 https://magic.wizards.com/en/articles/archive/feature/kamigawa-neon-dynasty-product-overview-2022-01-27
 """
 import numpy as np
-from mtg_cards.booster_probs import BoosterProbs, SlotProb
-from mtg_cards.sets import get_set
+
+from mtg_engine.mtg_cards.booster_probs import BoosterProbs, SlotProb
+from mtg_engine.mtg_cards.sets import get_set
 
 
 def rare_slot_probs() -> SlotProb:
