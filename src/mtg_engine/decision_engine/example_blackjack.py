@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from mtg_engine.decision_engine.engine import Engine, MessageGen
 from mtg_engine.decision_engine.message import Choice, Option, View, Views
-from mtg_engine.decision_engine.player import HumanPlayer
+from mtg_engine.decision_engine.player import HumanPlayer, Player
 
 # Ignore suits, just using integer card values, where J/Q/K=10, A=1
 CARDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
@@ -36,7 +36,8 @@ class FaceUpCardViews(Views):
     @classmethod
     def make(cls, value: int, player: int, num_players: int) -> "FaceUpCardViews":
         """Create a set of views for each player"""
-        return cls([FaceUpCardView(value, player) for _ in range(num_players)])
+        view = FaceUpCardView(value=value, player=player)
+        return cls([view] * num_players)
 
 
 @dataclass
@@ -62,13 +63,13 @@ class FacedownCardViews(Views):
     @classmethod
     def make(cls, value: int, player: int, num_players: int) -> "FacedownCardViews":
         """Create a set of views for each player"""
-        views = []
+        views = cls()
         for i in range(num_players):
             if i == player:
-                views.append(MyFacedownCard(value))
+                views.append(MyFacedownCard(value=value))
             else:
-                views.append(OtherFaceDownCard(i))
-        return cls(views)
+                views.append(OtherFaceDownCard(player=i))
+        return views
 
 
 @dataclass
@@ -170,6 +171,7 @@ class Blackjack(Engine):
         while not self.is_busted(player):
             # Get the player's choice
             result = yield choice
+            assert result is not None, f"{result}"
             assert choice.is_valid_decision(result), f"{result}"
             if result.option == 0:  # Stand
                 break
@@ -217,6 +219,6 @@ if __name__ == "__main__":
     # Run the game
     logging.basicConfig(level=logging.DEBUG)
     rng = Random(0)
-    players = [HumanPlayer()]
+    players: List[Player] = [HumanPlayer()]
     engine = Blackjack(players=players, rng=rng)
     engine.run()

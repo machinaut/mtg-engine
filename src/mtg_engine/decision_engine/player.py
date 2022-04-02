@@ -61,11 +61,10 @@ class RandomPlayer(Player):
 
     rng: Random = field(default_factory=Random, repr=False)
 
-    def decide(self, choice) -> Decision:
+    def decide(self, choice) -> int:
         """Make a random decision"""
         assert isinstance(choice, Choice)
-        option = self.rng.randint(0, len(choice.options) - 1)
-        return Decision(option)
+        return self.rng.randint(0, len(choice.options) - 1)
 
 
 @dataclass
@@ -83,10 +82,10 @@ class HumanPlayer(Player):
         print("Choose an option:")
         for i, option in enumerate(choice.options):
             print(f"\tOption {i}: {option}")
-        option = -1
-        while not choice.is_valid_option(option):
+        selection = -1
+        while not choice.is_valid_option(selection):
             try:
-                option = int(input("Your choice: "))
+                selection = int(input("Your choice: "))
             except ValueError:
-                print("Invalid option:", option)
-        return option
+                print("Invalid selection:", selection)
+        return selection

@@ -51,10 +51,6 @@ class Engine:
         """
         raise NotImplementedError
 
-    def is_valid_player(self, player: int) -> bool:
-        """Check if the player is valid"""
-        return isinstance(player, int) and (0 <= player < self.num_players)
-
     def run(self):
         """Run the engine, until the game is finished"""
         logging.debug("Running engine: %s", self)
