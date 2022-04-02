@@ -44,7 +44,7 @@ def dfc_slot_probs() -> SlotProb:
     cards = get_set("neo").cards
     common_uncommon = cards.filt_common() + cards.filt_uncommon()
     dfc = common_uncommon.filt_dfc()
-    return SlotProb.from_cards_probs(dfc, np.ones(len(dfc))).normalize()
+    return SlotProb.from_cards_probs(dfc, [1.0] * len(dfc)).normalize()
 
 
 def uncommon_slot_probs() -> SlotProb:
@@ -52,7 +52,7 @@ def uncommon_slot_probs() -> SlotProb:
     cards = get_set("neo").cards
     uncommon_single_faced = cards.filt_not_dfc().filt_uncommon()
     probs = np.ones(len(uncommon_single_faced)) / len(uncommon_single_faced)
-    return SlotProb.from_cards_probs(uncommon_single_faced, probs).normalize()
+    return SlotProb.from_cards_probs(uncommon_single_faced, probs.tolist()).normalize()
 
 
 def common_slot_probs() -> SlotProb:
@@ -60,7 +60,7 @@ def common_slot_probs() -> SlotProb:
     cards = get_set("neo").cards
     common_single_faced = cards.filt_not_dfc().filt_common().filt_not_land()
     probs = np.ones(len(common_single_faced)) / len(common_single_faced)
-    return SlotProb.from_cards_probs(common_single_faced, probs).normalize()
+    return SlotProb.from_cards_probs(common_single_faced, probs.tolist()).normalize()
 
 
 def maybe_foil_slot() -> SlotProb:
@@ -78,7 +78,7 @@ def land_slot_probs() -> SlotProb:
     """Get the probabilities of the land slot"""
     cards = get_set("neo").cards
     lands = cards.filt_land().filt_common()
-    return SlotProb.from_cards_probs(lands, np.ones(len(lands))).normalize()
+    return SlotProb.from_cards_probs(lands, [1.0] * len(lands)).normalize()
 
 
 def get_booster_probs() -> BoosterProbs:
