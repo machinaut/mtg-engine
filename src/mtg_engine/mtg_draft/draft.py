@@ -3,11 +3,9 @@
 Drafting, based on the Decision Engine.
 """
 import logging
-from collections import defaultdict
 from dataclasses import dataclass, field
 from random import Random
-from re import L
-from typing import Dict, List
+from typing import List, Optional
 
 from mtg_engine.decision_engine.engine import Engine, MessageGen
 from mtg_engine.decision_engine.message import Choice, Option, View, Views
@@ -21,7 +19,7 @@ class PackView(View):
     """A pack passed or opened by a player"""
 
     desc: str = "Draft Pack"
-    cards: List[int] = field(default_factory=list)
+    cards: Cards = field(default_factory=Cards)
 
 
 @dataclass
@@ -38,7 +36,7 @@ class PackViews(Views):
 class DraftPickOption(Option):
     """An option to pick a card"""
 
-    card: Card = field(default_factory=Card)
+    card: Optional[Card] = None
 
     def __post_init__(self):
         self.desc = f"Pick {self.card}"
@@ -67,6 +65,7 @@ class DraftEngine(Engine):
     rng: Random = field(default_factory=Random, repr=False)
     packs: List[Cards] = field(default_factory=list)
     picks: Cards = field(default_factory=Cards)
+    box: BoosterBox = field(default_factory=BoosterBox, repr=False)
 
     def get_new_packs(self):
         """Get new packs for every player"""
@@ -78,7 +77,8 @@ class DraftEngine(Engine):
         direction = -1 if left else 1
         self.packs = self.packs[direction:] + self.packs[:direction]
 
-    def play(self) -> MessageGen:
+    # Pylint incorrectly thinks this is useless, but is necessary for generator type
+    def play(self) -> MessageGen:  # pylint: disable=useless-return
         """Callers should use Engine.run(), see Engine for details"""
         assert 2 <= self.num_players <= 8, f"{self.num_players}"
         self.box = BoosterBox(set_name=self.set_name, rng=self.rng)
@@ -90,7 +90,8 @@ class DraftEngine(Engine):
                 self.pass_packs(bool(i % 2))  # Pass pack
         return None
 
-    def get_picks(self) -> MessageGen:
+    # Pylint incorrectly thinks this is useless, but is necessary for generator type
+    def get_picks(self) -> MessageGen:  # pylint: disable=useless-return
         """Get a pick choice from every player"""
         for i in range(self.num_players):
             choice = DraftPickChoice.make(player=i, pack=self.packs[i])

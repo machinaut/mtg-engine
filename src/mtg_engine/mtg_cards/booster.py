@@ -46,7 +46,7 @@ get_booster_probs = booster_probs_cache.get_booster_probs
 class BoosterBox:
     """A booster pack factory"""
 
-    set_name: str  # 3-letter lowercase code for the set (e.g. "neo")
+    set_name: str = "neo"  # 3-letter lowercase code for the set (e.g. "neo")
     rng: Optional[random.Random] = None
 
     def __post_init__(self):
