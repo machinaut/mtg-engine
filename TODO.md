@@ -1,9 +1,8 @@
 # TODO - tracking
 
 ## Magic relevant things
+* Make progress on game engine
 * Save/load decks to files
-* DraftRunner makes LimitedDecks for agents
-* Game support for matches (best of 3)
 
 ## Software development things
 * Debug the pylint pre-commit env issue

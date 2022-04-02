@@ -32,11 +32,9 @@ TODO: pull in 17lands data on drafts to use for simulation.
 
 This simulates deckbuilding, starting with sealed limited (6-booster).
 
-TODO: add draft-limited (3-booster, can be <45 cards given basics in packs)
-
 TODO: pull in 17lands data on deckbuilding
 
-### `mtg_engine` - Rules engine for playing games
+### `mtg_game` - Rules engine for playing games
 
 This simulates a game.  This will be the hardest to build, probably.
 
