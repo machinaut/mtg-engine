@@ -133,15 +133,14 @@ class Blackjack(Engine):
     def play(self) -> MessageGen:
         """Callers should use Engine.run(), see Engine for details"""
         # Setup the game
-        result = yield from self.deal()
+        yield from self.deal()
         # Each player gets a turn
         for i in range(self.num_players):
-            result = yield from self.turn(i)
+            yield from self.turn(i)
         # Dealer gets a turn
-        result = yield from self.dealer_turn()
+        yield from self.dealer_turn()
         # Show the scores
-        result = yield from self.show_scores()
-        return result
+        return (yield from self.show_scores())
 
     def deal(self) -> MessageGen:
         """Deal everyone starting cards"""
@@ -150,36 +149,34 @@ class Blackjack(Engine):
         for i in list(range(self.num_players)) + [-1]:
             card = self.draw()
             self.cards[i].append(card)
-            result = yield FaceUpCardViews.make(card, i, self.num_players)
+            yield FaceUpCardViews.make(card, i, self.num_players)
         # Second card face up to all players, not dealer
         for i in range(self.num_players):
             card = self.draw()
             self.cards[i].append(card)
-            result = yield FaceUpCardViews.make(card, i, self.num_players)
+            yield FaceUpCardViews.make(card, i, self.num_players)
         # Second dealer card face down
         card = self.draw()
         self.cards[-1].append(card)
-        result = yield FacedownCardViews.make(card, -1, self.num_players)
-        return result
+        return (yield FacedownCardViews.make(card, -1, self.num_players))
 
     def turn(self, player: int) -> MessageGen:
         """A single player has the option to take hits until bust or stand"""
         assert self.is_valid_player(player), f"{player}"
         # Players can get hits until they bust
         choice = StandHitChoice.make(player=player)
-        result = None
         while not self.is_busted(player):
             # Get the player's choice
             result = yield choice
             assert result is not None, f"{result}"
             assert choice.is_valid_decision(result), f"{result}"
             if result.option == 0:  # Stand
-                break
+                return None
             # Hit, send views for the new card
             card = self.draw()
             self.cards[player].append(card)
-            result = yield FaceUpCardViews.make(card, player, self.num_players)
-        return result
+            yield FaceUpCardViews.make(card, player, self.num_players)
+        return None
 
     def dealer_turn(self) -> MessageGen:
         """Dealer reveals card and hits until >= 17"""
