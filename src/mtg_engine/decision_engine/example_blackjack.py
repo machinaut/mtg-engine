@@ -181,12 +181,12 @@ class Blackjack(Engine):
     def dealer_turn(self) -> MessageGen:
         """Dealer reveals card and hits until >= 17"""
         card = self.cards[-1][-1]  # Dealer face down card
-        result = yield FaceUpCardViews.make(card, -1, self.num_players)
+        yield FaceUpCardViews.make(card, -1, self.num_players)
         while self.score(-1) < 17:
             card = self.draw()
             self.cards[-1].append(card)
-            result = yield FaceUpCardViews.make(card, -1, self.num_players)
-        return result
+            yield FaceUpCardViews.make(card, -1, self.num_players)
+        return None
 
     def is_busted(self, player: int) -> bool:
         """Check if a player has busted"""
