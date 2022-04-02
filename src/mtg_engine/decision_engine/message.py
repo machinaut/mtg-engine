@@ -13,7 +13,7 @@ from typing import List
 class Message:
     """Message class is sent between the engine and players."""
 
-    desc: str = "Override Message desc in Message subclass"
+    pass
 
 
 @dataclass
@@ -56,7 +56,8 @@ class Decision(Message):
     It just contains the index of the chosen option.
     """
 
-    option: int = -1000
+    index: int = -1000
+    option: Option = field(default_factory=Option)
 
 
 @dataclass
@@ -77,10 +78,24 @@ class Choice(Message):
     def __len__(self) -> int:
         return len(self.options)
 
-    def is_valid_option(self, chosen: int) -> bool:
+    def __contains__(self, option: Option) -> bool:
         """Return True if the given option is valid"""
-        return isinstance(chosen, int) and (0 <= chosen < len(self.options))
+        assert isinstance(option, Option)
+        # Check if the exact object is in the list, not just an equal object
+        return any(option is o for o in self.options)
+
+    def is_valid_index(self, index: int) -> bool:
+        """Return True if the given index is valid"""
+        assert isinstance(index, int)
+        return 0 <= index < len(self)
+
+    def is_valid_option(self, option: Option) -> bool:
+        """Return True if the given option is valid"""
+        return isinstance(option, Option) and option in self
 
     def is_valid_decision(self, decision: Decision) -> bool:
         """Return True if the given decision is valid"""
-        return isinstance(decision, Decision) and self.is_valid_option(decision.option)
+        return (
+            isinstance(decision, Decision)
+            and decision.option is self.options[decision.index]
+        )

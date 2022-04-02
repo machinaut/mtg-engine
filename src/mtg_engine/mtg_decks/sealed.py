@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 """
-`mtg_decks.sealed` - Interface for building a sealed deck
-
-TODO: inherit / use Deck class
+Sealed decks
 """
 # %%
 import random
 from dataclasses import dataclass
 from typing import Optional
 
-from mtg_decks.decks import LimitedDeck, RandomDeckAgent
-
 from mtg_engine.mtg_cards.booster import BoosterBox
 from mtg_engine.mtg_cards.cards import Cards
+from mtg_engine.mtg_decks.decks import LimitedDeck
 
 
 @dataclass
@@ -34,15 +31,7 @@ class Sealed(LimitedDeck):
             box = BoosterBox(set_name, rng)
         packs = [box.get_booster() for _ in range(6)]
         pool = sum(packs, Cards())  # Concatenate
-        return cls(set_name=set_name, pool=pool)
-
-
-def random_sealed_deck(set_name: str = "neo", rng: Optional[random.Random] = None):
-    """Make a new random sealed deck using a random agent"""
-    sealed = Sealed.make(set_name, rng)
-    agent = RandomDeckAgent(sealed, rng)
-    agent.run()
-    return agent.deck
+        return cls(set_name=set_name, sideboard=pool)
 
 
 if __name__ == "__main__":

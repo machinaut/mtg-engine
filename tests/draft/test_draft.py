@@ -9,7 +9,7 @@ from mtg_engine.mtg_draft.draft import DraftEngine
 
 def test_draft():
     for num_players in range(2, 9):
-        for seed in range(10):
+        for seed in range(3):
             players = [RandomPlayer(rng=Random(i + 100)) for i in range(num_players)]
             draft = DraftEngine(players=players, rng=Random(seed))
             draft.run()
@@ -33,7 +33,7 @@ def random_draft(num_players=8, draft_seed=0, pick_seed=0):
 
 def test_deterministic():
     """Check that the draft is deterministic on seed given fixed choices"""
-    for seed in range(10):
+    for seed in range(3):
         draft1 = fixed_draft(seed=seed)
         draft2 = fixed_draft(seed=seed)
         for i in range(draft1.num_players):
@@ -62,7 +62,7 @@ def test_conservative():
 def test_packs_different():
     """Test that the packs in a draft are different from each other"""
     for num_players in range(2, 9):
-        for seed in range(5):
+        for seed in range(3):
             draft1 = random_draft(num_players=num_players, draft_seed=seed)
             draft2 = random_draft(num_players=num_players, draft_seed=seed)
             draft3 = random_draft(num_players=num_players, draft_seed=seed + 1)

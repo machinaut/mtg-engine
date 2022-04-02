@@ -77,7 +77,6 @@ class DraftEngine(Engine):
         direction = -1 if left else 1
         self.packs = self.packs[direction:] + self.packs[:direction]
 
-    # Pylint incorrectly thinks this is useless, but is necessary for generator type
     def play(self) -> MessageGen:  # pylint: disable=useless-return
         """Callers should use Engine.run(), see Engine for details"""
         assert 2 <= self.num_players <= 8, f"{self.num_players}"
@@ -88,18 +87,17 @@ class DraftEngine(Engine):
                 yield PackViews.make(self.packs)  # Show pack
                 yield from self.get_picks()  # Pick card
                 self.pass_packs(bool(i % 2))  # Pass pack
-        return None
+        return None  # necessary for generator type
 
-    # Pylint incorrectly thinks this is useless, but is necessary for generator type
     def get_picks(self) -> MessageGen:  # pylint: disable=useless-return
         """Get a pick choice from every player"""
         for i in range(self.num_players):
             choice = DraftPickChoice.make(player=i, pack=self.packs[i])
             decision = yield choice
             assert decision is not None and choice.is_valid_decision(decision)
-            card = self.packs[i].pop(decision.option)
+            card = self.packs[i].pop(decision.index)
             self.picks.append(card)  # Add to picked cards for debugging purposes
-        return None
+        return None  # necessary for generator type
 
 
 if __name__ == "__main__":

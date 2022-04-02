@@ -95,6 +95,14 @@ set_cache = SetCache()
 get_set = set_cache.get_set
 
 
+def get_basics(set_name: str = "neo") -> Cards:
+    """Get the basic lands found in a set"""
+    return get_set(set_name).basics
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    print("Set:")
     get_set("neo").render()
+    print("Basics:")
+    get_basics("neo").render(rowsize=10)

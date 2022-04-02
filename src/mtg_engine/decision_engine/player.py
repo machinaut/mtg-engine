@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from random import Random
 from typing import List
 
-from mtg_engine.decision_engine.message import Choice, Decision, Message, View
+from mtg_engine.decision_engine.message import Choice, Decision, Message, Option, View
 
 
 @dataclass
@@ -45,9 +45,9 @@ class Player:
         assert len(choice.options) > 0, f"{choice} has no options"
         self.history.append(choice)
         # This is where the logic happens, so override it in subclasses
-        chosen_option = self.decide(choice)
-        assert choice.is_valid_option(chosen_option), f"{chosen_option} invalid"
-        decision = Decision(option=chosen_option)
+        index = self.decide(choice)
+        assert choice.is_valid_index(index), f"{index} invalid"
+        decision = Decision(index=index, option=choice.options[index])
         self.history.append(decision)
         return decision
 
@@ -83,6 +83,23 @@ class RandomPlayer(Player):
 
 
 @dataclass
+class BiasedPlayer(Player):
+    """Random player that picks the first option with 50% probability,
+    and the rest uniformly.
+    """
+
+    rng: Random = field(default_factory=Random, repr=False)
+
+    def decide(self, choice) -> int:
+        """Make a random decision"""
+        assert isinstance(choice, Choice)
+        if self.rng.random() < 0.5:
+            return 0
+        else:
+            return self.rng.randint(1, len(choice.options) - 1)
+
+
+@dataclass
 class HumanPlayer(Player):
     """Default player which prints out all options and reads input"""
 
@@ -98,7 +115,7 @@ class HumanPlayer(Player):
         for i, option in enumerate(choice.options):
             print(f"\tOption {i}: {option}")
         selection = -1
-        while not choice.is_valid_option(selection):
+        while not choice.is_valid_index(selection):
             try:
                 selection = int(input("Your choice: "))
             except ValueError:

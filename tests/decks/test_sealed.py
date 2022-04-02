@@ -3,7 +3,8 @@
 import random
 
 import pytest
-from mtg_decks.sealed import Sealed
+
+from mtg_engine.mtg_decks.sealed import Sealed
 
 
 def test_sealed():

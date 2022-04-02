@@ -197,6 +197,20 @@ class Cards:
         assert isinstance(card, Card), f"{card}"
         return self.cards.count(card)
 
+    def unique(self) -> "Cards":
+        """Get a copy of the cards, but with only unique cards"""
+        names = set()
+        result = []
+        for card in self.cards:
+            if card.name not in names:
+                result.append(card)
+                names.add(card.name)
+        return self.__class__(result)
+
+    def get_by_name(self, name: str) -> "Cards":
+        """Get a Cards object containing all cards with a given name"""
+        return self.__class__([c for c in self.cards if c.name == name])
+
     def filt_dfc(self) -> "Cards":
         """Filter to just cards that are double-faced"""
         return self.__class__(list(filter(lambda c: c.dfc, self.cards)))
