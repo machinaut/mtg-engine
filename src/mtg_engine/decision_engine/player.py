@@ -42,6 +42,7 @@ class Player:
         in order to preserve the history writing logic.
         """
         assert isinstance(choice, Choice), f"{choice} is not a Choice"
+        assert len(choice.options) > 0, f"{choice} has no options"
         self.history.append(choice)
         # This is where the logic happens, so override it in subclasses
         chosen_option = self.decide(choice)
@@ -56,10 +57,24 @@ class Player:
 
 
 @dataclass
+class FixedPlayer(Player):
+    """Player that always chooses the first option"""
+
+    def decide(self, choice) -> int:
+        """Always choose the first option"""
+        return 0
+
+
+@dataclass
 class RandomPlayer(Player):
     """Default player that makes random decisions"""
 
     rng: Random = field(default_factory=Random, repr=False)
+
+    def __eq__(self, other):
+        """Test equality without comparing rng state"""
+        assert isinstance(other, RandomPlayer)
+        return self.history == other.history
 
     def decide(self, choice) -> int:
         """Make a random decision"""
@@ -79,7 +94,7 @@ class HumanPlayer(Player):
     def decide(self, choice) -> int:
         """Read input from the user"""
         assert isinstance(choice, Choice)
-        print("Choose an option:")
+        print("Player", choice.player, ", Choose an option:")
         for i, option in enumerate(choice.options):
             print(f"\tOption {i}: {option}")
         selection = -1
@@ -87,5 +102,6 @@ class HumanPlayer(Player):
             try:
                 selection = int(input("Your choice: "))
             except ValueError:
-                print("Invalid selection:", selection)
+                pass
+            print("Invalid selection:", selection)
         return selection

@@ -50,7 +50,7 @@ class Engine:
 
     def run(self):
         """Run the engine, until the game is finished"""
-        logging.debug("Running engine: %s", self)
+        logging.debug("Running engine: %s", type(self))
         game_generator = self.play()
         message = next(game_generator)
         while True:
@@ -59,7 +59,7 @@ class Engine:
                 message = game_generator.send(reply)
             except StopIteration:
                 break
-        logging.debug("Completed engine: %s", self)
+        logging.debug("Completed engine: %s", type(self))
 
     def send_receive(self, message: Choice | Views) -> Decision | None:
         """Send the given message, and return the reply if any"""

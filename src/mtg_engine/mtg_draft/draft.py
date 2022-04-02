@@ -1,236 +1,109 @@
 #!/usr/bin/env python
 """
-`mtg_draft.draft` - Interfaces for drafting and draft agents
+Drafting, based on the Decision Engine.
 """
-# %% # Simulate a draft
 import logging
-import random
+from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List, Optional
+from random import Random
+from re import L
+from typing import Dict, List
 
+from mtg_engine.decision_engine.engine import Engine, MessageGen
+from mtg_engine.decision_engine.message import Choice, Option, View, Views
+from mtg_engine.decision_engine.player import HumanPlayer, Player, RandomPlayer
 from mtg_engine.mtg_cards.booster import BoosterBox
 from mtg_engine.mtg_cards.cards import Card, Cards
 
 
 @dataclass
-class DraftPlayer:
-    """Store the state of a single player during the draft"""
+class PackView(View):
+    """A pack passed or opened by a player"""
 
-    player: int
-    num_players: int
-    pack: Optional[Cards] = None
-    seen: List[Cards] = field(default_factory=list)
-    picks: List[int] = field(default_factory=list)
-    cards: Cards = field(default_factory=Cards)
-
-    def pick(self, pick: int) -> Card:
-        """Pick a card to remove from the pack"""
-        assert 0 <= pick < len(self.pack), f"{pick}"
-        pack = self.pack
-        seen = pack.copy()
-        card = pack.pick(pick)
-        self.picks.append(pick)  # Add the pick to the list of picks
-        self.seen.append(seen)  # Add the pack to the list of seen packs
-        self.cards.append(card)  # Add the card to the list of cards
-        # The draft will take the pack from us when everyone passes
+    desc: str = "Draft Pack"
+    cards: List[int] = field(default_factory=list)
 
 
 @dataclass
-class Draft:
-    """Simulate a draft"""
-
-    num_players: int = 8
-    set_name: str = "neo"
-    rng: Optional[random.Random] = None
-    turn: int = 0
-    players: List[DraftPlayer] = field(default_factory=list)
-    boosters: List[Cards] = field(default_factory=list)
-
-    @property
-    def current_pack(self) -> int:
-        """Which pack is the draft on, starting at 1 on turn 1"""
-        return ((self.turn - 1) // 15) + 1
-
-    @property
-    def current_pick(self) -> int:
-        """Which pick is the draft on, starting at 1 on turn 1"""
-        return ((self.turn - 1) % 15) + 1
-
-    def get_player(self, i) -> DraftPlayer:
-        """Create a new DraftPlayer and give them one of the booster packs"""
-        return DraftPlayer(
-            player=i, num_players=self.num_players, pack=self.box.get_booster()
-        )
-
-    def __post_init__(self):
-        assert 1 < self.num_players < 9, f"{self.num_players}"
-        assert self.set_name == "neo", f"{self.set_name}; only NEO for now"
-        if self.rng is None:
-            self.rng = random.Random()
-        self.box = BoosterBox(set_name=self.set_name, rng=self.rng)
-        # Player objects, used to track each player's state
-        self.players = [self.get_player(i) for i in range(self.num_players)]
-        # Get the packs, each player starts with 1, so we need 2 more
-        self.boosters = [self.box.get_booster() for _ in range(2 * self.num_players)]
-        # Start the draft
-        self.turn = 1
-
-    @property
-    def done(self) -> bool:
-        """Check if the draft is done"""
-        return self.turn >= 45
-
-    def ready_to_pass(self) -> bool:
-        """Check if we're ready to pass the packs"""
-        return all(len(p.picks) == self.turn for p in self.players)
-
-    def pass_packs(self) -> None:
-        """Call this when all players have made a pick"""
-        # assert we're not at the end of the draft
-        assert 1 <= self.turn <= 45, f"{self.turn}"
-        # assert everyone has made their picks for this turn
-        assert all(len(p.picks) == self.turn for p in self.players), f"{self}"
-        # increment the turn
-        self.turn += 1
-        if self.turn >= 45:
-            return  # done with draft
-        # increment the pick number, possibly opening a new pack
-        if self.turn % 15 == 1:
-            logging.debug("Opening new pack")
-            # Assert all the current packs are empty
-            assert all(len(p.pack) == 0 for p in self.players), f"{self}"
-            assert self.current_pick == 1, f"{self.current_pick}"
-            # Get new packs from boosters
-            for player in self.players:
-                player.pack = self.boosters.pop(0)
-        else:
-            # Pass to left, right, left
-            pass_dir = [-1, +1][self.current_pack % 2]
-            logging.debug("Passing to %s", pass_dir)
-            # Shift all of the packs
-            packs = [p.pack for p in self.players]
-            packs = packs[pass_dir:] + packs[:pass_dir]
-            for player, pack in zip(self.players, packs):
-                player.pack = pack
-
-    def pick(self, i: int, choice: int, auto_pass: bool = True) -> None:
-        """Make a pick for a player"""
-        # Validate inputs
-        assert isinstance(i, int) and (0 <= i < self.num_players), f"{i}"
-        player = self.players[i]
-        player.pick(choice)
-
-        # If this is the last pick, pass the packs
-        if auto_pass and self.ready_to_pass():
-            self.pass_packs()
-
-
-@dataclass
-class DraftAgent:
-    """Base class for an agent participating in a draft"""
-
-    player: Optional[DraftPlayer] = None  # our state in the draft
-
-    def pick(self) -> int:
-        """Make a pick, given the state of the draft"""
-        raise NotImplementedError
-
-
-@dataclass
-class RandomDraftAgent(DraftAgent):
-    """An agent that picks a random card"""
-
-    rng: Optional[random.Random] = field(default=None, repr=False)
-
-    def __post_init__(self):
-        if self.rng is None:
-            self.rng = random.Random()
-
-    def pick(self) -> int:
-        """Pick a random card"""
-        assert self.player is not None, f"{self}"
-        assert len(self.player.pack) > 0
-        return self.rng.randint(0, len(self.player.pack) - 1)
-
-
-@dataclass
-class HumanDraftAgent(DraftAgent):
-    """A human interface to a draft"""
-
-    def pick(self):
-        """Get a human pick"""
-        assert self.player is not None, f"{self}"
-        # Print the cards
-        print("Picked:")
-        self.player.cards.render()
-        # Print the pack
-        print("Pack:")
-        self.player.pack.render()
-        for i, card in enumerate(self.player.pack):
-            print(f"{i}: {card.name}")
-
-        pick = None
-        while pick is None:
-            try:
-                pick = int(input("Pick: "))
-            except ValueError:
-                print("Invalid pick")
-                pick = None
-            if pick < 0 or pick >= len(self.player.pack):
-                print("Invalid pick")
-                pick = None
-        logging.debug("Picked %s", pick)
-        return pick
-
-
-@dataclass
-class DraftRunner:
-    """Runs a draft with agents"""
-
-    draft: Draft
-    agents: List[DraftAgent]
+class PackViews(Views):
+    """A set of views of each player's pack"""
 
     @classmethod
-    def make(
-        cls,
-        num_players: int,
-        agents: Optional[List[DraftAgent]] = None,
-        set_name: str = "neo",
-        rng: Optional[random.Random] = None,
-    ) -> "DraftRunner":
-        """Make a new draft, filling in agents with RandomDraftAgent"""
-        if rng is None:
-            rng = random.Random()
-        draft = Draft(num_players=num_players, set_name=set_name, rng=rng)
-        # Pad out given agents with RandomDraftAgent
-        if agents is None:
-            agents = [RandomDraftAgent(rng=rng) for _ in range(num_players)]
-        else:
-            agents.extend(
-                [RandomDraftAgent(rng=rng) for _ in range(num_players - len(agents))]
-            )
-        assert len(agents) == num_players, f"{len(agents)} != {num_players}"
-        # Assign agents to players
-        for i, agent in enumerate(agents):
-            agent.player = draft.players[i]
-        return cls(draft=draft, agents=agents)
+    def make(cls, packs: List[Cards]) -> "PackViews":
+        """Create a set of views for each player"""
+        return cls([PackView(cards=pack) for pack in packs])
 
-    def run(self) -> None:
-        """Run the draft"""
-        while not self.draft.done:
-            logging.debug(
-                "Draft Turn: %s Pack: %s Pick: %s",
-                self.draft.turn,
-                self.draft.current_pack,
-                self.draft.current_pick,
-            )
-            for i, agent in enumerate(self.agents):
-                self.draft.pick(i, agent.pick())
+
+@dataclass
+class DraftPickOption(Option):
+    """An option to pick a card"""
+
+    card: Card = field(default_factory=Card)
+
+    def __post_init__(self):
+        self.desc = f"Pick {self.card}"
+
+
+@dataclass
+class DraftPickChoice(Choice):
+    """Which card to pick"""
+
+    desc: str = "Pick a card from the pack"
+
+    @classmethod
+    def make(cls, player: int, pack: Cards) -> "DraftPickChoice":
+        """Create a choice from a pack of cards"""
+        options: List[Option] = [DraftPickOption(card=card) for card in pack]
+        return cls(player=player, options=options)
+
+
+@dataclass
+class DraftEngine(Engine):
+    """Magic: the Gathering Drafting
+    https://magic.wizards.com/en/formats/booster-draft
+    """
+
+    set_name: str = "neo"
+    rng: Random = field(default_factory=Random, repr=False)
+    packs: List[Cards] = field(default_factory=list)
+    picks: Cards = field(default_factory=Cards)
+
+    def get_new_packs(self):
+        """Get new packs for every player"""
+        assert all(len(pack) == 0 for pack in self.packs), "Packs should be empty"
+        self.packs = [self.box.get_booster() for _ in range(self.num_players)]
+
+    def pass_packs(self, left=True):
+        """Rotate the packs to the left"""
+        direction = -1 if left else 1
+        self.packs = self.packs[direction:] + self.packs[:direction]
+
+    def play(self) -> MessageGen:
+        """Callers should use Engine.run(), see Engine for details"""
+        assert 2 <= self.num_players <= 8, f"{self.num_players}"
+        self.box = BoosterBox(set_name=self.set_name, rng=self.rng)
+        for i in range(3):  # For each pack
+            self.get_new_packs()  # Open pack
+            for _ in range(15):  # For each card
+                yield PackViews.make(self.packs)  # Show pack
+                yield from self.get_picks()  # Pick card
+                self.pass_packs(bool(i % 2))  # Pass pack
+        return None
+
+    def get_picks(self) -> MessageGen:
+        """Get a pick choice from every player"""
+        for i in range(self.num_players):
+            choice = DraftPickChoice.make(player=i, pack=self.packs[i])
+            decision = yield choice
+            assert decision is not None and choice.is_valid_decision(decision)
+            card = self.packs[i].pop(decision.option)
+            self.picks.append(card)  # Add to picked cards for debugging purposes
+        return None
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.DEBUG)
-    runner = DraftRunner.make(
-        num_players=2, agents=[HumanDraftAgent()], rng=random.Random(0)
-    )
-    runner.run()
+    logging.basicConfig(level=logging.DEBUG)
+    rng = Random(0)
+    players: List[Player] = [HumanPlayer(), RandomPlayer(rng=rng)]
+    engine = DraftEngine(players=players, rng=rng)
+    engine.run()

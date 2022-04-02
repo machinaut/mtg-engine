@@ -46,6 +46,16 @@ class Card:
         """Hash based on the name of the card"""
         return hash(self.name)
 
+    @property
+    def set_number(self):
+        """Get the set number of the card"""
+        return (self.oracle["set"], self.oracle["collector_number"])
+
+    def __lt__(self, other) -> bool:
+        """Used to sort cards by set and collector number"""
+        assert isinstance(other, Card), f"{other}"
+        return self.set_number < other.set_number
+
     @classmethod
     def from_json(cls, card):
         """Create a Card object from a scryfall JSON card"""
@@ -177,6 +187,11 @@ class Cards:
         assert isinstance(card, Card), f"{card}"
         self.cards.remove(card)
 
+    def pop(self, index) -> Card:
+        """Remove a card from the pack"""
+        assert isinstance(index, int), f"{index}"
+        return self.cards.pop(index)
+
     def count(self, card) -> int:
         """Get the number of times a card appears"""
         assert isinstance(card, Card), f"{card}"
@@ -235,7 +250,7 @@ class Cards:
 
     def sort(self):
         """Sort by set and collector number"""
-        self.cards.sort(key=lambda c: (c.oracle["set"], c.oracle["collector_number"]))
+        self.cards.sort(key=lambda c: c.set_number)
 
     def pick(self, choice: int) -> Card:
         """Pick a card to remove from the pack"""
