@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from random import Random
 from typing import List
 
-from mtg_engine.decision_engine.message import Choice, Decision, Message, Option, View
+from mtg_engine.decision_engine.message import Choice, Decision, Message, View
 
 
 @dataclass
@@ -95,8 +95,7 @@ class BiasedPlayer(Player):
         assert isinstance(choice, Choice)
         if self.rng.random() < 0.5:
             return 0
-        else:
-            return self.rng.randint(1, len(choice.options) - 1)
+        return self.rng.randint(1, len(choice.options) - 1)
 
 
 @dataclass

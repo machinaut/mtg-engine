@@ -13,8 +13,6 @@ from typing import List
 class Message:
     """Message class is sent between the engine and players."""
 
-    pass
-
 
 @dataclass
 class View(Message):

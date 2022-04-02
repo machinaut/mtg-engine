@@ -178,7 +178,7 @@ class Blackjack(Engine):
             yield FaceUpCardViews.make(card, player, self.num_players)
         return None
 
-    def dealer_turn(self) -> MessageGen:
+    def dealer_turn(self) -> MessageGen:  # pylint: disable=useless-return
         """Dealer reveals card and hits until >= 17"""
         card = self.cards[-1][-1]  # Dealer face down card
         yield FaceUpCardViews.make(card, -1, self.num_players)
@@ -186,7 +186,7 @@ class Blackjack(Engine):
             card = self.draw()
             self.cards[-1].append(card)
             yield FaceUpCardViews.make(card, -1, self.num_players)
-        return None
+        return None  # This is required for the generator type
 
     def is_busted(self, player: int) -> bool:
         """Check if a player has busted"""

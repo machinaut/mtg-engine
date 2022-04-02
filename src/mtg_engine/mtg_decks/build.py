@@ -10,16 +10,10 @@ from random import Random
 from typing import List, Optional
 
 from mtg_engine.decision_engine.engine import Engine, MessageGen
-from mtg_engine.decision_engine.message import Choice, Decision, Option, View, Views
-from mtg_engine.decision_engine.player import (
-    BiasedPlayer,
-    HumanPlayer,
-    Player,
-    RandomPlayer,
-)
-from mtg_engine.mtg_cards.booster import BoosterBox
+from mtg_engine.decision_engine.message import Choice, Option, View, Views
+from mtg_engine.decision_engine.player import BiasedPlayer, Player
 from mtg_engine.mtg_cards.cards import Card, Cards
-from mtg_engine.mtg_decks.decks import Deck, LimitedDeck
+from mtg_engine.mtg_decks.decks import Deck
 from mtg_engine.mtg_decks.sealed import Sealed
 
 
@@ -110,7 +104,7 @@ class DeckEngine(Engine):
         # Send the initial view
         yield DeckViews.make(self.deck)
         # Send choices until we get a finish decision
-        for i in range(self.max_turns):
+        for _ in range(self.max_turns):
             # Get a decision, break if they took a finish decision
             choice = DeckChoice.make(self.deck)
             decision = yield choice
@@ -118,7 +112,7 @@ class DeckEngine(Engine):
             assert choice.is_valid_decision(decision)
             if isinstance(decision.option, DeckFinishOption):
                 break
-            elif isinstance(decision.option, DeckPickOption):
+            if isinstance(decision.option, DeckPickOption):
                 self.deck.pick(decision.option.card)
             elif isinstance(decision.option, DeckUnpickOption):
                 self.deck.unpick(decision.option.card)
@@ -131,9 +125,9 @@ class DeckEngine(Engine):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    deck = Sealed.make(set_name="neo", rng=Random(0))
+    my_deck = Sealed.make(set_name="neo", rng=Random(0))
     players: List[Player] = [BiasedPlayer(rng=Random(0))]
-    deck_engine = DeckEngine(players=players, deck=deck)
+    deck_engine = DeckEngine(players=players, deck=my_deck)
     deck_engine.run()
-    print("deck main:", len(deck.main), "side:", len(deck.sideboard))
-    assert deck.legal()
+    print("deck main:", len(my_deck.main), "side:", len(my_deck.sideboard))
+    assert my_deck.legal()

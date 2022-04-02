@@ -122,7 +122,7 @@ class Card:
 
 
 @dataclass
-class Cards:
+class Cards:  # pylint: disable=too-many-public-methods
     """
     Cards - A list of Card objects.
 
