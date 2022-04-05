@@ -72,3 +72,13 @@ class Exile(Zone):
     An "exiled" card is one that's been put into the exile zone.
     See rule 406, "Exile."
     """
+
+
+@dataclass
+class Command(Zone):
+    """
+    Command:
+    A zone for certain specialized objects that have an overarching effect on the game,
+    yet are not permanents and cannot be destroyed.
+    See rule 408, "Command."
+    """
