@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """ Zone class and subclasses """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
+
+from mtg_engine.mtg_game.objects import Object
 
 
 @dataclass
@@ -10,6 +13,14 @@ class Zone:
     A place where objects can be during a game.
     See section 4, "Zones."
     """
+
+    public: bool = True  # hidden zone if false
+    objects: List[Object] = field(default_factory=list)
+
+    def append(self, object_):
+        """Append an object to the list"""
+        assert isinstance(object_, Object)
+        self.objects.append(object_)
 
 
 @dataclass
@@ -21,6 +32,8 @@ class Library(Zone):
     See rule 401, "Library."
     """
 
+    public: bool = False  # Hidden zone
+
 
 @dataclass
 class Hand(Zone):
@@ -30,6 +43,8 @@ class Hand(Zone):
     2. All the cards in a player's hand.
     See rule 402, "Hand."
     """
+
+    public: bool = False  # Hidden zone
 
 
 @dataclass
@@ -82,3 +97,18 @@ class Command(Zone):
     yet are not permanents and cannot be destroyed.
     See rule 408, "Command."
     """
+
+
+@dataclass
+class Zones:
+    """Container class for all of the zones"""
+
+    # Shared zones
+    battlefield: Battlefield = field(default_factory=Battlefield)
+    stack: Stack = field(default_factory=Stack)
+    exile: Exile = field(default_factory=Exile)
+    command: Command = field(default_factory=Command)
+    # Zones for each player, indexed by player index
+    libraries: List[Library] = field(default_factory=list)
+    hands: List[Hand] = field(default_factory=list)
+    graveyards: List[Graveyard] = field(default_factory=list)

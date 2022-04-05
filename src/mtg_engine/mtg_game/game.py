@@ -13,6 +13,8 @@ from mtg_engine.decision_engine.player import BiasedPlayer, HumanPlayer, Player
 from mtg_engine.mtg_cards.cards import Card, Cards
 from mtg_engine.mtg_cards.sets import get_basics
 from mtg_engine.mtg_decks.decks import Deck, LimitedDeck
+from mtg_engine.mtg_game.objects import CardObject
+from mtg_engine.mtg_game.zones import Library, Zones
 
 
 @dataclass
@@ -100,6 +102,7 @@ class GameEngine(Engine):
     decks: List[Deck] = field(default_factory=list)
     rng: Random = field(default_factory=Random, repr=False)
     current_player: int = -1
+    zones: Zones = field(default_factory=Zones)
 
     def play(self) -> MessageGen:  # pylint: disable=useless-return
         """Callers should use Engine.run(), see Engine for details"""
@@ -133,6 +136,13 @@ class GameEngine(Engine):
             cards.shuffle(rng=self.rng)
             yield LibraryViews.make(player=i, cards=cards, num_players=self.num_players)
         # Shuffle decks into libraries
+        assert len(self.zones.libraries) == 0, "Libraries starts empty"
+        for i in range(self.num_players):
+            cards = self.decks[i].main.copy()
+            cards.shuffle(rng=self.rng)
+            # cards in the library are a list of card objects, not a Cards object
+            library = Library(objects=[CardObject(card=card) for card in cards])
+            self.zones.libraries.append(library)
         return None  # not useless, needed for generator type
 
 

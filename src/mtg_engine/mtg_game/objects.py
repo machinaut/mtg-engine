@@ -2,6 +2,8 @@
 """ Object classes and subclasses """
 from dataclasses import dataclass
 
+from mtg_engine.mtg_cards.cards import Card
+
 
 @dataclass
 class Object:
@@ -36,6 +38,8 @@ class CardObject(Object):
     such as a creature card in a player's hand.
     See rule 108, "Cards."
     """
+
+    card: Card
 
 
 @dataclass
