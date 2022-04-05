@@ -13,8 +13,10 @@ Cards objects can have arbitrarily many Card objects, in any order.
 TODO: test that rendering a single card and sets of cards works,
 both in jupyter and in a terminal.
 """
-# %%
 from dataclasses import dataclass, field
+
+# %%
+from random import Random
 from types import MappingProxyType
 from typing import Iterator, List, Union
 
@@ -280,6 +282,11 @@ class Cards:  # pylint: disable=too-many-public-methods
         cards = self.copy()
         cards.sort()
         return cards
+
+    def shuffle(self, rng: Random) -> None:
+        """Shuffle the cards"""
+        assert isinstance(rng, Random), f"{rng}"
+        rng.shuffle(self.cards)
 
     def render(self, fmt="small", rowsize=5):
         """Display an image with rows of cards"""
