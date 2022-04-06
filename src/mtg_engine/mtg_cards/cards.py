@@ -44,6 +44,11 @@ class Card:
     name: str
     oracle: MappingProxyType = field(repr=False)
 
+    @classmethod
+    def bogus(cls, name: str = "Bogus Card"):
+        """Create a bogus card"""
+        return cls(name=name, oracle={"name": name})
+
     def __hash__(self) -> int:
         """Hash based on the name of the card"""
         return hash(self.name)
@@ -287,6 +292,12 @@ class Cards:  # pylint: disable=too-many-public-methods
         """Shuffle the cards"""
         assert isinstance(rng, Random), f"{rng}"
         rng.shuffle(self.cards)
+
+    def shuffled(self, rng: Random) -> "Cards":
+        """Get a copy of the cards, shuffled"""
+        cards = self.copy()
+        cards.shuffle(rng)
+        return cards
 
     def render(self, fmt="small", rowsize=5):
         """Display an image with rows of cards"""

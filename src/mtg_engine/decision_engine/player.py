@@ -119,5 +119,6 @@ class HumanPlayer(Player):
                 selection = int(input("Your choice: "))
             except ValueError:
                 pass
-            print("Invalid selection:", selection)
+            if not choice.is_valid_index(selection):
+                print("Invalid selection:", selection)
         return selection

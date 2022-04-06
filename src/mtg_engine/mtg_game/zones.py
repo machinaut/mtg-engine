@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """ Zone class and subclasses """
 from dataclasses import dataclass, field
-from typing import List
+from random import Random
+from typing import List, Optional
 
-from mtg_engine.mtg_game.objects import Object
+from mtg_engine.mtg_cards.cards import Card
+from mtg_engine.mtg_decks.decks import Deck
+from mtg_engine.mtg_game.objects import CardObject, Object
 
 
 @dataclass
@@ -14,13 +17,16 @@ class Zone:
     See section 4, "Zones."
     """
 
-    public: bool = True  # hidden zone if false
+    public: bool = True  # only hand and library are hidden zones
     objects: List[Object] = field(default_factory=list)
 
     def append(self, object_):
         """Append an object to the list"""
         assert isinstance(object_, Object)
         self.objects.append(object_)
+
+    def __len__(self):
+        return len(self.objects)
 
 
 @dataclass
@@ -33,6 +39,11 @@ class Library(Zone):
     """
 
     public: bool = False  # Hidden zone
+    rng: Random = field(default_factory=Random)
+
+    def shuffle(self):
+        """Shuffle the library"""
+        self.rng.shuffle(self.objects)
 
 
 @dataclass
@@ -112,3 +123,64 @@ class Zones:
     libraries: List[Library] = field(default_factory=list)
     hands: List[Hand] = field(default_factory=list)
     graveyards: List[Graveyard] = field(default_factory=list)
+
+    def setup(self, decks: List[Deck], rng: Random):
+        """
+        Make a list of libraries, hands, graveyards for each player
+        """
+        assert len(self.libraries) == 0, "Libraries starts empty"
+        assert len(self.hands) == 0, "Hands starts empty"
+        assert len(self.graveyards) == 0, "Graveyards starts empty"
+        for deck in decks:
+            self.hands.append(Hand())
+            self.graveyards.append(Graveyard())
+            self.libraries.append(
+                Library(
+                    objects=[CardObject(card=card) for card in deck.main],
+                    rng=rng,
+                )
+            )
+            self.libraries[-1].shuffle()
+
+    def draw(self, player: int) -> Card:
+        """
+        Draw a card from the library and put it in the hand
+        """
+        library = self.libraries[player]
+        hand = self.hands[player]
+        # TODO: implement losing the game if the library is empty
+        assert len(library.objects) > 0, "Library is empty"
+        card = library.objects.pop(0)
+        assert isinstance(card, CardObject)
+        hand.append(card)
+        return card.card
+
+    def hand_to_library_bottom(self, player: int, card: Card):
+        """
+        Put a card from the hand to the bottom of the library
+        """
+        hand = self.hands[player]
+        library = self.libraries[player]
+        # find the object that matches the card
+        found: Optional[CardObject] = None
+        for obj in hand.objects:
+            assert isinstance(obj, CardObject)
+            if obj.card == card:
+                found = obj
+                break
+        else:
+            raise ValueError(f"Card {card} not found in hand")
+        # remove the object from the hand
+        hand.objects.remove(found)
+        # put the object at the bottom of the library
+        library.objects.append(found)
+
+    def shuffle_hand_into_library(self, player: int):
+        """
+        Shuffle the hand into the library
+        """
+        hand = self.hands[player]
+        library = self.libraries[player]
+        library.objects.extend(hand.objects)
+        hand.objects.clear()
+        library.shuffle()

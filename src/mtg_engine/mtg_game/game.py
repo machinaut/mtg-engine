@@ -13,8 +13,9 @@ from mtg_engine.decision_engine.player import BiasedPlayer, HumanPlayer, Player
 from mtg_engine.mtg_cards.cards import Card, Cards
 from mtg_engine.mtg_cards.sets import get_basics
 from mtg_engine.mtg_decks.decks import Deck, LimitedDeck
-from mtg_engine.mtg_game.objects import CardObject
-from mtg_engine.mtg_game.zones import Library, Zones
+
+# from mtg_engine.mtg_game.objects import CardObject
+from mtg_engine.mtg_game.zones import Zones
 
 
 @dataclass
@@ -94,6 +95,117 @@ class LibraryViews(Views):
 
 
 @dataclass
+class StartingHandView(View):
+    """The cards in this player's starting hand"""
+
+    desc: str = "Player's Starting Hand"
+    cards: Cards = field(default_factory=Cards)
+
+
+@dataclass
+class StartingHandSizeView(View):
+    """The number of cards in another player's starting hand"""
+
+    desc: str = "Player's Starting Hand Size"
+    player: int = -1000
+    size: int = -1000
+
+
+@dataclass
+class StartingHandViews(Views):
+    """A set of views of the number of cards in each player's starting hand"""
+
+    @classmethod
+    def make(cls, player: int, cards: Cards, num_players: int) -> "StartingHandViews":
+        """Create a set of views for each player"""
+        views: List[View] = []
+        for i in range(num_players):
+            if i == player:
+                views.append(StartingHandView(cards=cards))
+            else:
+                views.append(StartingHandSizeView(player=player, size=len(cards)))
+        return cls(views)
+
+
+@dataclass
+class StartingHandKeepOption(Option):
+    """An option to keep a card"""
+
+    desc: str = "Keep this starting hand"
+
+
+@dataclass
+class StartingHandMulliganOption(Option):
+    """An option to mulligan"""
+
+    desc: str = "Mulligan this starting hand"
+
+
+@dataclass
+class StartingHandChoice(Choice):
+    """Which card to keep or mulligan"""
+
+    desc: str = "Choose a card to keep or mulligan"
+
+    @classmethod
+    def make(cls, player: int) -> "StartingHandChoice":
+        """Create a new StartingHandChoice"""
+        return cls(
+            player=player,
+            options=[
+                StartingHandKeepOption(),
+                StartingHandMulliganOption(),
+            ],
+        )
+
+
+@dataclass
+class StartingHandKeepView(View):
+    """Did a player keep their starting hand?"""
+
+    desc: str = "Did player keep their starting hand?"
+    player: int = -1000
+    keep: bool = False
+
+
+@dataclass
+class StartingHandKeepViews(Views):
+    """A set of views of whether each player kept their starting hand"""
+
+    @classmethod
+    def make(cls, player: int, keep: bool, num_players: int) -> "StartingHandKeepViews":
+        """Create a set of views for each player"""
+        return cls(
+            views=[
+                StartingHandKeepView(player=player, keep=keep)
+                for _ in range(num_players)
+            ]
+        )
+
+
+@dataclass
+class MulliganCardOption(Option):
+    """An option to mulligan a card"""
+
+    desc: str = "Mulligan this card"
+    card: Card = field(default_factory=lambda: Card.bogus())
+
+
+@dataclass
+class MulliganCardChoice(Choice):
+    """Which card to mulligan"""
+
+    desc: str = "Choose a card to mulligan"
+
+    @classmethod
+    def make(cls, player: int, cards: Cards) -> "MulliganCardChoice":
+        """Create a new MulliganCardChoice"""
+        return cls(
+            player=player, options=[MulliganCardOption(card=card) for card in cards]
+        )
+
+
+@dataclass
 class GameEngine(Engine):
     """Magic: the Gathering
     https://magic.wizards.com/en/formats/booster-draft
@@ -103,6 +215,7 @@ class GameEngine(Engine):
     rng: Random = field(default_factory=Random, repr=False)
     current_player: int = -1
     zones: Zones = field(default_factory=Zones)
+    lifes: List[int] = field(default_factory=list)
 
     def play(self) -> MessageGen:  # pylint: disable=useless-return
         """Callers should use Engine.run(), see Engine for details"""
@@ -132,17 +245,70 @@ class GameEngine(Engine):
         # Send all the library / size views
         for i in range(self.num_players):
             # Make a shuffled copy of the main deck, this is NOT the library
-            cards = self.decks[i].main.copy()
-            cards.shuffle(rng=self.rng)
-            yield LibraryViews.make(player=i, cards=cards, num_players=self.num_players)
-        # Shuffle decks into libraries
-        assert len(self.zones.libraries) == 0, "Libraries starts empty"
-        for i in range(self.num_players):
-            cards = self.decks[i].main.copy()
-            cards.shuffle(rng=self.rng)
-            # cards in the library are a list of card objects, not a Cards object
-            library = Library(objects=[CardObject(card=card) for card in cards])
-            self.zones.libraries.append(library)
+            yield LibraryViews.make(
+                player=i,
+                cards=self.decks[i].main.shuffled(rng=self.rng),
+                num_players=self.num_players,
+            )
+        # Shuffle decks into libraries, make hands and graveyards (empty)
+        self.zones.setup(decks=self.decks, rng=self.rng)
+        # Set the life totals
+        self.lifes = [20] * self.num_players  # TODO: this should emit a life total view
+        # Draw starting hands
+        yield from self.draw_hands()
+        return None  # not useless, needed for generator type
+
+    def draw_hands(self) -> MessageGen:  # pylint: disable=useless-return
+        """Drawing hands and Mulliganing"""
+        players_to_draw = list(range(self.num_players))
+        # shift so that the current player is the first to draw
+        players_to_draw = (
+            players_to_draw[self.current_player :]
+            + players_to_draw[: self.current_player]
+        )
+        assert players_to_draw[0] == self.current_player
+        # Loop until no mulligans are taken, or until hand limit
+        for cards_to_mulligan in range(7):
+            # Go in player order
+            for i in players_to_draw.copy():
+                assert len(self.zones.hands[i]) == 0
+                assert (
+                    len(self.zones.libraries[i]) >= 40
+                ), f"{len(self.zones.libraries[i])}"
+                # Draw the hand
+                cards = Cards([self.zones.draw(player=i) for _ in range(7)])
+                assert (
+                    len(self.zones.libraries[i]) >= 33
+                ), f"{len(self.zones.libraries[i])}"
+                # Send the hand view
+                yield StartingHandViews.make(
+                    player=i, cards=cards, num_players=self.num_players
+                )
+                # Get the cards to put at the bottom of the library
+                for _ in range(cards_to_mulligan):
+                    choice = MulliganCardChoice.make(player=i, cards=cards)
+                    decision = yield choice
+                    assert decision is not None and choice.is_valid_decision(decision)
+                    # Remove the card from the hand
+                    cards.remove(decision.option.card)
+                    # Put the card back in the library
+                    self.zones.hand_to_library_bottom(
+                        player=i, card=decision.option.card
+                    )
+                # Send the keep / mulligan choice
+                choice = StartingHandChoice.make(player=i)
+                decision = yield choice
+                assert decision is not None and choice.is_valid_decision(decision)
+                # If the player mulligans, remove them from the list
+                if isinstance(decision.option, StartingHandKeepOption):
+                    players_to_draw.remove(i)
+                else:
+                    # Shuffle the hand into the library
+                    self.zones.shuffle_hand_into_library(player=i)
+                    assert len(self.zones.hands[i]) == 0, f"{len(self.zones.hands[i])}"
+                    assert (
+                        len(self.zones.libraries[i]) >= 40
+                    ), f"{len(self.zones.libraries[i])}"
         return None  # not useless, needed for generator type
 
 
